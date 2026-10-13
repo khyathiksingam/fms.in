@@ -3,7 +3,7 @@ import {
   HardDrive, PieChart, BarChart2, Files, Building2, 
   TrendingUp, Download, Shield, Eye
 } from 'lucide-react';
-import { api, getToken } from '../utils/api';
+import { api, getApiUrl, getToken } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { formatBytes, formatDate } from '../utils/formatters';
 import { getFileIcon } from '../components/files/FileCard';
@@ -33,7 +33,7 @@ export default function StoragePage() {
 
   const handleDownload = (file) => {
     const token = getToken();
-    window.open(`/api/files/${file.id}/download?token=${token || ''}`, '_blank');
+    window.open(getApiUrl(`/files/${file.id}/download?token=${encodeURIComponent(token || '')}`), '_blank');
   };
 
   if (loading) {

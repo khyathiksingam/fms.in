@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, LayoutGrid, List } from 'lucide-react';
-import { api, getToken } from '../utils/api';
+import { api, getApiUrl, getToken } from '../utils/api';
 import FileCard from '../components/files/FileCard';
 import FileTable from '../components/files/FileTable';
 import FilePreviewModal from '../components/files/FilePreviewModal';
@@ -34,7 +34,7 @@ export default function RecentFilesPage() {
 
   const handleDownload = (file) => {
     const token = getToken();
-    window.open(`/api/files/${file.id}/download?token=${token || ''}`, '_blank');
+    window.open(getApiUrl(`/files/${file.id}/download?token=${encodeURIComponent(token || '')}`), '_blank');
   };
 
   const handleToggleStar = async (file) => {

@@ -1,4 +1,8 @@
-const API_BASE = '/api';
+import { createApiUrlBuilder } from './apiUrl';
+
+const getApiUrl = createApiUrlBuilder(import.meta.env.VITE_API_BASE_URL);
+
+export { getApiUrl };
 
 export function getToken() {
   return localStorage.getItem('ffms_token');
@@ -36,8 +40,7 @@ export async function apiRequest(endpoint, options = {}) {
     requestOptions.body = JSON.stringify(requestOptions.body);
   }
 
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
-  const response = await fetch(url, {
+  const response = await fetch(getApiUrl(endpoint), {
     ...requestOptions,
     headers
   });
@@ -54,7 +57,7 @@ export async function apiRequest(endpoint, options = {}) {
   }
 
   if (response.ok && response.status !== 204 && !isJson) {
-    const error = new Error('The API endpoint returned a non-JSON response. Check the backend route and development proxy.');
+    const error = new Error('The API returned a non-JSON response. Check VITE_API_BASE_URL and the deployed backend.');
     error.status = response.status;
     error.data = data;
     throw error;
@@ -79,7 +82,7 @@ export async function fetchAuthenticatedPdf(endpoint) {
     throw error;
   }
 
-  const response = await fetch(`${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, {
+  const response = await fetch(getApiUrl(endpoint), {
     headers: { Authorization: `Bearer ${token}` }
   });
   const contentType = response.headers.get('content-type') || '';

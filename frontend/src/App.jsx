@@ -37,7 +37,7 @@ import FileUploadModal from './components/files/FileUploadModal';
 import NewFolderModal from './components/files/NewFolderModal';
 import FilePreviewModal from './components/files/FilePreviewModal';
 import FileShareModal from './components/files/FileShareModal';
-import { getToken } from './utils/api';
+import { getApiUrl, getToken } from './utils/api';
 
 function MainApp({ currentPath, navigate }) {
   const { user, loading, isAdmin, isHOD } = useAuth();
@@ -57,7 +57,7 @@ function MainApp({ currentPath, navigate }) {
     if (!file) return;
     const token = getToken();
     const link = document.createElement('a');
-    link.href = `/api/files/${file.id}/download?token=${token || ''}`;
+    link.href = getApiUrl(`/files/${file.id}/download?token=${encodeURIComponent(token || '')}`);
     link.download = file.name || file.original_name;
     document.body.appendChild(link);
     link.click();

@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: ffms-api
+    runtime: node
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: ffms-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: FFMS_HOD_TEMP_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://fms-464b1rjua-khyathik.vercel.app
+      - key: FFMS_DATA_DIR
+        value: /var/data
+      - key: FFMS_STORAGE_DIR
+        value: /var/data/uploads
+      - key: FFMS_LOGO_DIR
+        value: /var/data/logos
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_FROM_NAME
+        value: VNRVJIET

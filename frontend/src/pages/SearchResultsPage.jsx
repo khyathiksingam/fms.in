@@ -3,7 +3,7 @@ import {
   Search, Sparkles, Filter, FileText, ArrowRight, 
   Download, Eye, Calendar, User, Building2
 } from 'lucide-react';
-import { api, getToken } from '../utils/api';
+import { api, getApiUrl, getToken } from '../utils/api';
 import { formatBytes, formatDate, formatRelativeTime } from '../utils/formatters';
 import { getFileIcon } from '../components/files/FileCard';
 import FilePreviewModal from '../components/files/FilePreviewModal';
@@ -42,7 +42,7 @@ export default function SearchResultsPage({ query = '', onPreviewFile }) {
 
   const handleDownload = (file) => {
     const token = getToken();
-    window.open(`/api/files/${file.id}/download?token=${token || ''}`, '_blank');
+    window.open(getApiUrl(`/files/${file.id}/download?token=${encodeURIComponent(token || '')}`), '_blank');
   };
 
   // Helper to highlight query inside text

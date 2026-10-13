@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { History, X, Upload, Download, RotateCcw, File, CheckCircle2 } from 'lucide-react';
-import { api, getToken } from '../../utils/api';
+import { api, getApiUrl, getToken } from '../../utils/api';
 import { formatBytes, formatDate } from '../../utils/formatters';
 
 export default function VersionHistoryModal({ isOpen, onClose, file, onVersionUpdated }) {
@@ -54,7 +54,7 @@ export default function VersionHistoryModal({ isOpen, onClose, file, onVersionUp
       if (note.trim()) formData.append('note', note.trim());
 
       const token = getToken();
-      const res = await fetch(`/api/files/${file.id}/versions`, {
+      const res = await fetch(getApiUrl(`/files/${file.id}/versions`), {
         method: 'POST',
         headers: {
           'Authorization': token ? `Bearer ${token}` : ''
@@ -90,7 +90,7 @@ export default function VersionHistoryModal({ isOpen, onClose, file, onVersionUp
 
   const handleDownloadVersion = (versionNumber) => {
     const token = getToken();
-    window.open(`/api/files/${file.id}/versions/${versionNumber}/download?token=${token || ''}`, '_blank');
+    window.open(getApiUrl(`/files/${file.id}/versions/${versionNumber}/download?token=${encodeURIComponent(token || '')}`), '_blank');
   };
 
   const handleClose = () => {

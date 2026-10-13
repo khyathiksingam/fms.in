@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { promisify } = require('util');
-const { dbHelper } = require('../config/db');
+const { dbHelper, DB_FILE } = require('../config/db');
 const { JWT_SECRET } = require('../middleware/auth');
 const emailService = require('../services/emailService');
 const { durationSince } = require('../services/sessionService');
@@ -127,16 +127,39 @@ async function logUserActivity(user, action, req, metadata = {}, sessionId = nul
   );
 }
 
+function logAuthenticationDiagnostic(category, accountExists = null, administratorExists = null) {
+  if (process.env.AUTH_DIAGNOSTICS !== 'true') return;
+  console.info(JSON.stringify({
+    event: 'authentication_diagnostic',
+    database_file: DB_FILE,
+    account_exists: accountExists,
+    administrator_exists: administratorExists,
+    failure_category: category
+  }));
+}
+
 const authController = {
   async login(req, res) {
     try {
       const requiredRole = req.path === '/auth/student-login' ? 'student' : null;
       const { username, password } = req.body;
       if (!username || !password) {
+        logAuthenticationDiagnostic('missing_credentials');
         return res.status(400).json({ error: 'Username and password are required.' });
       }
 
       const identifier = username.trim();
+      const administrator = process.env.AUTH_DIAGNOSTICS === 'true'
+        ? await dbHelper.get(`
+          SELECT u.id
+          FROM users u
+          JOIN roles r ON r.id = u.role_id
+          WHERE r.name = 'admin'
+            AND (LOWER(u.username) = LOWER(?) OR LOWER(u.email) = LOWER(?))
+          LIMIT 1
+        `, [identifier, identifier])
+        : null;
+      const administratorExists = Boolean(administrator);
       const accountLookup = requiredRole === 'student'
         ? `r.name = 'student'
            AND (LOWER(u.username) = LOWER(?) OR LOWER(u.email) = LOWER(?) OR LOWER(COALESCE(u.roll_number, '')) = LOWER(?))`
@@ -154,18 +177,22 @@ const authController = {
       `, lookupParams);
 
       if (!user) {
+        logAuthenticationDiagnostic('account_not_found', false, administratorExists);
         return res.status(401).json({ error: 'Incorrect username or password.' });
       }
       if ((requiredRole && user.role_name !== requiredRole) || (!requiredRole && user.role_name === 'student')) {
+        logAuthenticationDiagnostic('role_not_allowed', true, administratorExists);
         return res.status(401).json({ error: requiredRole ? 'Incorrect student username or password.' : 'Students must use the Student Login page.' });
       }
 
       if (user.status === 'disabled') {
+        logAuthenticationDiagnostic('account_disabled', true, administratorExists);
         return res.status(403).json({ error: 'Your account is disabled. Please contact the college administrator.' });
       }
 
       const isMatch = await bcrypt.compare(password, user.password_hash);
       if (!isMatch) {
+        logAuthenticationDiagnostic('password_mismatch', true, administratorExists);
         return res.status(401).json({ error: 'Incorrect username or password.' });
       }
 
@@ -232,6 +259,7 @@ const authController = {
         user: userProfile
       });
     } catch (error) {
+      logAuthenticationDiagnostic('internal_error');
       console.error('Login error:', error);
       res.status(500).json({ error: 'Internal server error during login.' });
     }

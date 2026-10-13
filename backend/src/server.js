@@ -11,10 +11,23 @@ const { expireElapsedSessions } = require('./services/sessionService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const allowedOrigins = new Set(
+  (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map(origin => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean)
+);
+
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.add('http://localhost:5173');
+  allowedOrigins.add('http://127.0.0.1:5173');
+}
 
 // CORS setup
 app.use(cors({
-  origin: true,
+  origin(origin, callback) {
+    callback(null, !origin || allowedOrigins.has(origin));
+  },
   credentials: true
 }));
 

@@ -8,7 +8,7 @@ import {
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
 import { formatBytes, formatDate } from '../../utils/formatters';
-import { getToken } from '../../utils/api';
+import { getApiUrl, getToken } from '../../utils/api';
 
 export default function FilePreviewModal({ isOpen, onClose, file, onShare, onDownload }) {
   const [zoom, setZoom] = useState(100);
@@ -72,7 +72,7 @@ export default function FilePreviewModal({ isOpen, onClose, file, onShare, onDow
   if (!isOpen || !file) return null;
 
   const token = getToken();
-  const previewUrl = `/api/files/${file.id}/preview?token=${token || ''}`;
+  const previewUrl = getApiUrl(`/files/${file.id}/preview?token=${encodeURIComponent(token || '')}`);
   const lowerName = file.name.toLowerCase();
 
   const isDocx = lowerName.endsWith('.docx') || lowerName.endsWith('.doc') || file.mime_type?.includes('wordprocessingml');
@@ -88,7 +88,7 @@ export default function FilePreviewModal({ isOpen, onClose, file, onShare, onDow
       onDownload(file);
     } else {
       const link = document.createElement('a');
-      link.href = `/api/files/${file.id}/download?token=${token || ''}`;
+      link.href = getApiUrl(`/files/${file.id}/download?token=${encodeURIComponent(token || '')}`);
       link.download = file.name || file.original_name;
       document.body.appendChild(link);
       link.click();

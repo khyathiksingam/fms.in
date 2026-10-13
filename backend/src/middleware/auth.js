@@ -2,7 +2,11 @@ const jwt = require('jsonwebtoken');
 const { dbHelper } = require('../config/db');
 const { expireSessionToken } = require('../services/sessionService');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'ffms_secret_college_key_2026_super_secure';
+const JWT_SECRET = process.env.JWT_SECRET ||
+  (process.env.NODE_ENV === 'production' ? null : 'ffms_development_only_secret');
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET must be configured in production.');
+}
 
 /**
  * Middleware to authenticate requests via Bearer token

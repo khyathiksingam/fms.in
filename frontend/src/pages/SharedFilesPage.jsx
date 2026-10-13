@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Share2, Users, Building2, Eye, Download, Info } from 'lucide-react';
-import { api, getToken } from '../utils/api';
+import { api, getApiUrl, getToken } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { formatBytes, formatDate, formatRelativeTime } from '../utils/formatters';
 import { getFileIcon } from '../components/files/FileCard';
@@ -33,7 +33,7 @@ export default function SharedFilesPage() {
 
   const handleDownload = (file) => {
     const token = getToken();
-    window.open(`/api/files/${file.id}/download?token=${token || ''}`, '_blank');
+    window.open(getApiUrl(`/files/${file.id}/download?token=${encodeURIComponent(token || '')}`), '_blank');
   };
 
   return (

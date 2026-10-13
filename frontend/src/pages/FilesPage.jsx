@@ -4,7 +4,7 @@ import {
   Search, FolderPlus, Sparkles, ChevronLeft, ChevronRight,
   CheckSquare, Square, Check, Globe, Lock, Trash2, X, RotateCcw
 } from 'lucide-react';
-import { api, getToken } from '../utils/api';
+import { api, getApiUrl, getToken } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import FileCard from '../components/files/FileCard';
 import FileTable from '../components/files/FileTable';
@@ -169,7 +169,7 @@ export default function FilesPage({ scope = 'all', title = 'Files', onUploadTrig
   const handleDownload = (file) => {
     const token = getToken();
     const link = document.createElement('a');
-    link.href = `/api/files/${file.id}/download?token=${token || ''}`;
+    link.href = getApiUrl(`/files/${file.id}/download?token=${encodeURIComponent(token || '')}`);
     link.download = file.name || file.original_name;
     document.body.appendChild(link);
     link.click();

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, File, CheckCircle2, AlertCircle, Trash2, Globe, Lock } from 'lucide-react';
 import { formatBytes } from '../../utils/formatters';
-import { getToken } from '../../utils/api';
+import { getApiUrl, getToken } from '../../utils/api';
 
 export default function FileUploadModal({ isOpen, onClose, onUploadComplete, currentFolderId, currentDeptId }) {
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -79,7 +79,7 @@ export default function FileUploadModal({ isOpen, onClose, onUploadComplete, cur
       }, 150);
 
       const token = getToken();
-      const res = await fetch('/api/files/upload', {
+      const res = await fetch(getApiUrl('/files/upload'), {
         method: 'POST',
         headers: {
           'Authorization': token ? `Bearer ${token}` : ''

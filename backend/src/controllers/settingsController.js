@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const LOGO_DIR = path.resolve(__dirname, '../../storage/logos');
+const LOGO_DIR = path.resolve(process.env.FFMS_LOGO_DIR || path.resolve(__dirname, '../../storage/logos'));
 const DEFAULT_COLLEGE = 'Your College';
 const DEFAULT_SYSTEM = 'Faculty File Management System';
 const DEFAULT_TYPES = 'pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,jpg,jpeg,png,gif,svg,mp4,mov,avi,mp3,wav,zip,rar';

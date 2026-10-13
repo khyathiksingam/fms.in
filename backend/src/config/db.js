@@ -467,5 +467,6 @@ const dbHelper = {
 
 module.exports = {
   initDB,
-  dbHelper
+  dbHelper,
+  DB_FILE
 };
