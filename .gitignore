@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+**/.env*
+
+# Local databases and uploaded files
+**/*.sqlite
+**/*.sqlite-*
+**/*.db
+**/*.db-*
+backend/data/
+backend/storage/uploads/
+backend/storage/logos/
+**/uploads/
+backend/src/config/restoreUsers.js
+backend/src/config/seed_devika.js
+backend/test/test_user_and_settings.js
+**/*.pem
+**/*.key
+**/*.pfx
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Generated files and local working data
+**/node_modules/
+**/dist/
+**/coverage/
+.tmp/
+scratch/
+eng.traineddata
+
+# Editor & OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

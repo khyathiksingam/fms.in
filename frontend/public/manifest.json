@@ -1,0 +1,35 @@
+{
+  "name": "VNRVJIET Faculty File Management System",
+  "short_name": "VNRVJIET",
+  "description": "VNRVJIET Syllabus Books and Faculty File Management Portal",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone", "window-controls-overlay", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#16265C",
+  "prefer_related_applications": false,
+  "categories": ["education", "productivity", "management"],
+  "icons": [
+    {
+      "src": "/brand/vnrvjiet-favicon-16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/vnrvjiet-favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/vnrvjiet-mark-transparent.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

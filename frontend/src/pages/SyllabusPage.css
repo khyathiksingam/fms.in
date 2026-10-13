@@ -1,0 +1,425 @@
+.syllabus-page {
+  --syllabus-navy: #16265c;
+  --syllabus-blue: #2846c7;
+  --syllabus-gold: #f4b64e;
+  --syllabus-shadow: 0 18px 42px -26px rgb(22 38 92 / 38%), 0 7px 18px -12px rgb(40 70 199 / 24%);
+}
+
+.syllabus-header {
+  box-shadow: 0 7px 24px -20px rgb(22 38 92 / 38%);
+}
+
+.syllabus-icon-button {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dce3f0;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #fff, #f3f6fc);
+  color: var(--syllabus-navy);
+  box-shadow: 0 4px 10px -8px rgb(22 38 92 / 50%), inset 0 1px 0 rgb(255 255 255 / 95%);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.dark .syllabus-icon-button {
+  border-color: #33415f;
+  background: linear-gradient(145deg, #1e2a46, #151d32);
+  color: #f4c876;
+  box-shadow: 0 4px 10px -8px #000, inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+.syllabus-portal-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3949ab 0%, #2846c7 52%, #6941c6 100%);
+  padding: 0.6rem 1rem;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 750;
+  box-shadow: 0 9px 18px -12px rgb(40 70 199 / 80%), inset 0 1px 0 rgb(255 255 255 / 22%);
+  transition: box-shadow 160ms ease, filter 160ms ease, transform 160ms ease;
+}
+
+.syllabus-desktop-portal {
+  display: none;
+}
+
+.syllabus-mobile-menu {
+  display: inline-flex;
+}
+
+.syllabus-mobile-menu-panel {
+  display: block;
+}
+
+@media (min-width: 40rem) {
+  .syllabus-desktop-portal {
+    display: inline-flex;
+  }
+
+  .syllabus-mobile-menu,
+  .syllabus-mobile-menu-panel {
+    display: none;
+  }
+}
+
+.syllabus-portal-button:hover {
+  filter: brightness(1.07);
+  box-shadow: 0 13px 22px -13px rgb(40 70 199 / 85%), inset 0 1px 0 rgb(255 255 255 / 25%);
+  transform: translateY(-2px);
+}
+
+.syllabus-hero {
+  isolation: isolate;
+  border: 1px solid rgb(255 255 255 / 19%);
+  background:
+    linear-gradient(116deg, rgb(22 38 92 / 98%) 0%, rgb(32 54 139 / 96%) 52%, rgb(40 70 199 / 96%) 100%);
+  box-shadow: 0 28px 55px -32px rgb(22 38 92 / 60%), 0 12px 28px -22px rgb(40 70 199 / 50%);
+}
+
+.syllabus-hero::before {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 2.5rem;
+  width: min(42%, 24rem);
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--syllabus-gold), rgb(244 182 78 / 18%), transparent);
+  content: "";
+}
+
+.syllabus-hero::after {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  right: 0;
+  width: min(62%, 46rem);
+  height: 100%;
+  border-left: 1px solid rgb(255 255 255 / 7%);
+  background: linear-gradient(140deg, rgb(255 255 255 / 8%), transparent 38%);
+  clip-path: polygon(25% 0, 100% 0, 100% 100%, 0 80%);
+  content: "";
+  transform: skewX(-7deg);
+  transform-origin: right;
+  transition: transform 450ms cubic-bezier(.2,.7,.2,1);
+}
+
+.syllabus-hero-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: radial-gradient(rgb(244 182 78 / 42%) 0.8px, transparent 0.8px);
+  background-position: 0 0;
+  background-size: 22px 22px;
+  mask-image: linear-gradient(110deg, transparent 8%, #000 62%, #000 100%);
+  opacity: 0.32;
+}
+
+.syllabus-hero-plane {
+  position: absolute;
+  z-index: 0;
+  top: 13%;
+  right: -4%;
+  width: 47%;
+  height: 82%;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 34px;
+  background: linear-gradient(135deg, rgb(255 255 255 / 8%), rgb(255 255 255 / 1%) 64%);
+  box-shadow: 0 22px 36px -30px rgb(0 0 0 / 45%), inset 0 1px 0 rgb(255 255 255 / 12%);
+  transform: perspective(900px) rotateY(-13deg) rotateX(2deg);
+  transition: transform 450ms cubic-bezier(.2,.7,.2,1);
+}
+
+.syllabus-cap {
+  z-index: 1;
+  filter: drop-shadow(0 12px 18px rgb(8 16 55 / 16%));
+}
+
+.syllabus-search {
+  border: 1px solid rgb(255 255 255 / 78%);
+  background: linear-gradient(145deg, rgb(255 255 255 / 98%), rgb(244 247 255 / 94%));
+  box-shadow: 0 17px 32px -21px rgb(8 16 55 / 62%), inset 0 2px 5px rgb(22 38 92 / 7%), inset 0 1px 0 #fff;
+}
+
+.syllabus-filter-panel {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(rgb(255 255 255 / 95%), rgb(255 255 255 / 95%)) padding-box,
+    linear-gradient(130deg, rgb(40 70 199 / 42%), rgb(255 255 255 / 92%) 48%, rgb(244 182 78 / 58%)) border-box;
+  box-shadow: var(--syllabus-shadow), inset 0 1px 0 #fff;
+  backdrop-filter: blur(12px);
+}
+
+.dark .syllabus-filter-panel {
+  background:
+    linear-gradient(rgb(15 23 42 / 96%), rgb(15 23 42 / 96%)) padding-box,
+    linear-gradient(130deg, rgb(91 119 229 / 45%), rgb(51 65 95 / 90%) 48%, rgb(244 182 78 / 45%)) border-box;
+  box-shadow: 0 20px 42px -28px rgb(0 0 0 / 85%), inset 0 1px 0 rgb(255 255 255 / 6%);
+}
+
+.syllabus-filter-panel select {
+  min-height: 44px;
+  border-color: #dce3f0;
+  background: linear-gradient(180deg, #fff 0%, #f7f9fd 100%);
+  color: #182544;
+  box-shadow: inset 0 2px 4px rgb(22 38 92 / 5%), inset 0 1px 0 #fff;
+}
+
+.dark .syllabus-filter-panel select {
+  border-color: #3a4864;
+  background: linear-gradient(180deg, #1e293b 0%, #172033 100%);
+  color: #e5eaf4;
+  box-shadow: inset 0 2px 5px rgb(0 0 0 / 24%), inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+
+.syllabus-filter-panel select:disabled {
+  border-color: #dce3f0;
+  background: #edf1f7;
+  color: #53617a;
+  opacity: 1;
+  -webkit-text-fill-color: #53617a;
+}
+
+.dark .syllabus-filter-panel select:disabled {
+  border-color: #36425b;
+  background: #1b2538;
+  color: #b4bfd2;
+  -webkit-text-fill-color: #b4bfd2;
+}
+
+.syllabus-program-card,
+.syllabus-result-group,
+.syllabus-branch-group,
+.syllabus-subject-card {
+  box-shadow: 0 12px 24px -21px rgb(22 38 92 / 60%), inset 0 1px 0 rgb(255 255 255 / 85%);
+  transform-style: preserve-3d;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.dark .syllabus-program-card,
+.dark .syllabus-result-group,
+.dark .syllabus-branch-group,
+.dark .syllabus-subject-card {
+  box-shadow: 0 12px 24px -20px rgb(0 0 0 / 88%), inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+
+.syllabus-program-card:hover,
+.syllabus-subject-card:hover {
+  box-shadow: 0 20px 32px -23px rgb(22 38 92 / 62%), inset 0 1px 0 rgb(255 255 255 / 88%);
+  transform: perspective(850px) translateY(-5px) rotateX(1deg);
+}
+
+.syllabus-program-card.selected {
+  box-shadow: 0 12px 27px -19px rgb(40 70 199 / 52%), inset 0 1px 0 #fff;
+}
+
+.syllabus-filter-pill {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d5ddeb;
+  border-radius: 9999px;
+  background: linear-gradient(145deg, #fff, #f7f9fd);
+  padding: 0.45rem 0.9rem;
+  color: #16265c;
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 4px 10px -8px rgb(22 38 92 / 45%), inset 0 1px 0 #fff;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.syllabus-regulation-pill.is-selected {
+  border-color: #16265c;
+  background: #16265c;
+  color: #fff;
+  box-shadow: 0 7px 14px -9px rgb(22 38 92 / 80%), inset 0 1px 0 rgb(255 255 255 / 16%);
+}
+
+.syllabus-year-pill.is-selected {
+  border-color: #f4b64e;
+  background: #f4b64e;
+  color: #16265c;
+  box-shadow: 0 7px 14px -9px rgb(22 38 92 / 48%), inset 0 1px 0 rgb(255 255 255 / 45%);
+}
+
+.dark .syllabus-filter-pill {
+  border-color: #455477;
+  background: linear-gradient(145deg, #202c46, #182238);
+  color: #e5eaf4;
+  box-shadow: 0 4px 10px -8px #000, inset 0 1px 0 rgb(255 255 255 / 6%);
+}
+
+.dark .syllabus-regulation-pill.is-selected {
+  border-color: #8295e8;
+  background: #2846c7;
+  color: #fff;
+}
+
+.dark .syllabus-year-pill.is-selected {
+  border-color: #f4b64e;
+  background: #f4b64e;
+  color: #16265c;
+}
+
+.syllabus-department-directory {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, rgb(40 70 199 / 42%), rgb(255 255 255 / 95%) 42%, rgb(244 182 78 / 65%)) border-box;
+  box-shadow: 0 20px 42px -28px rgb(22 38 92 / 52%), inset 0 1px 0 #fff;
+}
+
+.dark .syllabus-department-directory {
+  background:
+    linear-gradient(#111b30, #111b30) padding-box,
+    linear-gradient(135deg, rgb(91 119 229 / 48%), rgb(51 65 95 / 90%) 42%, rgb(244 182 78 / 48%)) border-box;
+  box-shadow: 0 20px 42px -28px rgb(0 0 0 / 88%), inset 0 1px 0 rgb(255 255 255 / 6%);
+}
+
+.syllabus-department-button {
+  border-color: transparent;
+  background: transparent;
+  color: #25324c;
+  overflow-wrap: anywhere;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.syllabus-department-button:hover {
+  border-color: #d5ddeb;
+  background: #f5f7fc;
+}
+
+.syllabus-department-button.is-selected {
+  border-color: #8295d6;
+  background: #edf2ff;
+  color: #16265c;
+  box-shadow: 0 5px 12px -9px rgb(22 38 92 / 50%);
+}
+
+.syllabus-department-button.is-selected .syllabus-department-count {
+  border-color: #c9d4f5;
+  background: #fff;
+  color: #16265c;
+}
+
+.syllabus-department-button.is-selected .syllabus-department-status {
+  color: #465b91;
+}
+
+.dark .syllabus-department-button {
+  color: #dce4f2;
+}
+
+.dark .syllabus-department-button:hover {
+  border-color: #455477;
+  background: #1b2740;
+}
+
+.dark .syllabus-department-button.is-selected {
+  border-color: #7186df;
+  background: #1e2d4a;
+  color: #f1f5f9;
+}
+
+.dark .syllabus-department-button.is-selected .syllabus-department-count {
+  border-color: #56678f;
+  background: #293956;
+  color: #f1f5f9;
+}
+
+.dark .syllabus-department-button.is-selected .syllabus-department-status {
+  color: #c3d0ef;
+}
+
+.syllabus-result-group[open],
+.syllabus-branch-group[open] {
+  border-color: #bdc9e1;
+  box-shadow: 0 17px 32px -25px rgb(22 38 92 / 65%), inset 0 1px 0 rgb(255 255 255 / 90%);
+}
+
+.dark .syllabus-result-group[open],
+.dark .syllabus-branch-group[open] {
+  border-color: #455477;
+  box-shadow: 0 17px 32px -24px rgb(0 0 0 / 90%), inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+
+.syllabus-expand-pill {
+  border: 1px solid #ead6ac;
+  background: linear-gradient(145deg, #fffaf0, #fff0ce);
+  color: #68440c;
+  box-shadow: 0 3px 7px -5px rgb(93 61 13 / 55%), inset 0 1px 0 #fff;
+}
+
+.dark .syllabus-expand-pill {
+  border-color: #66502b;
+  background: linear-gradient(145deg, #3a2e1c, #2e251a);
+  color: #ffe1a4;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
+}
+
+.syllabus-result-group summary:focus-visible,
+.syllabus-branch-group summary:focus-visible,
+.syllabus-page button:focus-visible,
+.syllabus-page a:focus-visible,
+.syllabus-page select:focus-visible,
+.syllabus-page input:focus-visible {
+  outline: 3px solid #2846c7;
+  outline-offset: 3px;
+}
+
+.dark .syllabus-result-group summary:focus-visible,
+.dark .syllabus-branch-group summary:focus-visible,
+.dark .syllabus-page button:focus-visible,
+.dark .syllabus-page a:focus-visible,
+.dark .syllabus-page select:focus-visible,
+.dark .syllabus-page input:focus-visible {
+  outline-color: #f4b64e;
+}
+
+.syllabus-page-button:not(:disabled):hover {
+  border-color: #2846c7;
+  background: #f2f5ff;
+}
+
+.dark .syllabus-page-button:not(:disabled):hover {
+  background: #1a2746;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .syllabus-hero:hover .syllabus-hero-plane {
+    transform: perspective(900px) rotateY(-9deg) rotateX(1deg) translate3d(-3px, -2px, 0);
+  }
+
+  .syllabus-hero:hover::after {
+    transform: skewX(-7deg) translateX(-7px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .syllabus-page *,
+  .syllabus-page *::before,
+  .syllabus-page *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .syllabus-program-card:hover,
+  .syllabus-subject-card:hover,
+  .syllabus-hero:hover .syllabus-hero-plane,
+  .syllabus-hero:hover::after,
+  .syllabus-hero-plane {
+    transform: none !important;
+  }
+}
