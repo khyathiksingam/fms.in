@@ -22,7 +22,7 @@ services:
       - key: FFMS_HOD_TEMP_PASSWORD
         sync: false
       - key: CORS_ORIGINS
-        value: https://fms-464b1rjua-khyathik.vercel.app
+        value: https://fmsin.vercel.app,https://fms-nchjwtdup-khyathik.vercel.app
       - key: FFMS_DATA_DIR
         value: /var/data
       - key: FFMS_STORAGE_DIR
