@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Building2, Lock, User, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { VNRVJIET_DARK_EMBLEM } from '../utils/branding';
+import { VNRVJIET_DARK_EMBLEM, getCollegeLogoUrl, handleCollegeLogoError } from '../utils/branding';
 
 export default function LoginPage({ onLoginSuccess }) {
   const { login, collegeSettings } = useAuth();
   const { isDark } = useTheme();
-  const collegeLogo = collegeSettings?.college_logo || collegeSettings?.system_logo || '/logo.png';
+  const collegeLogo = getCollegeLogoUrl(collegeSettings?.college_logo || collegeSettings?.system_logo);
   const displayedCollegeLogo = isDark ? VNRVJIET_DARK_EMBLEM : collegeLogo;
   const collegeName = collegeSettings?.college_name || 'VNRVJIET';
   const [username, setUsername] = useState('');
@@ -44,7 +44,7 @@ export default function LoginPage({ onLoginSuccess }) {
           {/* College Header */}
           <div className="text-center">
             <div className={`mx-auto flex h-20 w-20 items-center justify-center overflow-hidden ${isDark ? '' : 'bg-white'}`}>
-              <img src={displayedCollegeLogo} alt={`${collegeName} logo`} className="h-full w-full object-contain" />
+              <img src={displayedCollegeLogo} alt={`${collegeName} logo`} className="h-full w-full object-contain" onError={event => handleCollegeLogoError(event)} />
             </div>
             <h2 className="mt-4 px-2 text-xs font-extrabold uppercase tracking-wide text-indigo-900 line-clamp-2 dark:text-slate-100">
               {collegeName}
@@ -132,3 +132,4 @@ export default function LoginPage({ onLoginSuccess }) {
     </div>
   );
 }
+
