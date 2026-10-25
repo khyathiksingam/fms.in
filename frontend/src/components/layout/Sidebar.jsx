@@ -7,7 +7,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { formatBytes } from '../../utils/formatters';
-import { VNRVJIET_DARK_EMBLEM } from '../../utils/branding';
+import { VNRVJIET_DARK_EMBLEM, getCollegeLogoUrl, handleCollegeLogoError } from '../../utils/branding';
 
 export default function Sidebar({ 
   currentPath, 
@@ -20,7 +20,7 @@ export default function Sidebar({
 }) {
   const { isAdmin, isHOD, isStaff, collegeSettings } = useAuth();
   const { isDark } = useTheme();
-  const collegeLogo = collegeSettings?.college_logo || collegeSettings?.system_logo || '/logo.png';
+  const collegeLogo = getCollegeLogoUrl(collegeSettings?.college_logo || collegeSettings?.system_logo);
   const displayedCollegeLogo = isDark ? VNRVJIET_DARK_EMBLEM : collegeLogo;
   const collegeName = collegeSettings?.college_name || 'VNRVJIET';
 
@@ -213,7 +213,7 @@ export default function Sidebar({
             <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className={`flex h-8 w-8 items-center justify-center overflow-hidden ${isDark ? '' : 'bg-white'}`}>
-                  <img src={displayedCollegeLogo} alt={`${collegeName} logo`} className="h-full w-full object-contain" />
+                  <img src={displayedCollegeLogo} alt={`${collegeName} logo`} className="h-full w-full object-contain" onError={event => handleCollegeLogoError(event)} />
                 </div>
                 <span className="font-extrabold text-xs text-indigo-900 dark:text-indigo-300">{collegeSettings?.system_name || 'Faculty File Management System'}</span>
               </div>
@@ -233,3 +233,4 @@ export default function Sidebar({
     </>
   );
 }
+
