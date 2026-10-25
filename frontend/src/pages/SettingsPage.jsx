@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Building2, Shield, Save, CheckCircle2, Sliders, HardDrive, FileType, Upload, UserCheck } from 'lucide-react';
 import { api, apiRequest } from '../utils/api';
+import { getCollegeLogoUrl, handleCollegeLogoError } from '../utils/branding';
 import { useAuth } from '../context/AuthContext';
 
 export default function SettingsPage() {
@@ -166,10 +167,10 @@ export default function SettingsPage() {
             </label>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <img
-                src={collegeSettings?.college_logo || '/brand/vnrvjiet-full-logo.png'}
+                src={getCollegeLogoUrl(collegeSettings?.college_logo, '/brand/vnrvjiet-full-logo.png')}
                 alt="Current header logo"
                 className="h-12 w-52 rounded-xl border border-slate-200 bg-white object-contain p-1 dark:border-slate-700"
-                onError={event => { event.currentTarget.src = '/brand/vnrvjiet-full-logo.png'; }}
+                onError={event => handleCollegeLogoError(event, '/brand/vnrvjiet-full-logo.png')}
               />
               <input
                 type="file"
@@ -290,3 +291,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
