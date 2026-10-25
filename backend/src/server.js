@@ -17,6 +17,7 @@ const allowedOrigins = new Set(
     .map(origin => origin.trim().replace(/\/+$/, ''))
     .filter(Boolean)
 );
+allowedOrigins.add('https://resourcehubvnrvjiet.vercel.app');
 
 if (process.env.NODE_ENV !== 'production') {
   allowedOrigins.add('http://localhost:5173');
