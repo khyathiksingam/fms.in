@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { VNRVJIET_DARK_EMBLEM } from '../../utils/branding';
+import { VNRVJIET_DARK_EMBLEM, getCollegeLogoUrl, handleCollegeLogoError } from '../../utils/branding';
 import { getOfficialDepartmentLabel, getOfficialDepartmentOptions } from '../../utils/officialDepartments';
 
 export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobileMenuOpen, currentSearchQuery = '' }) {
@@ -17,7 +17,7 @@ export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobil
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   const profileRef = useRef(null);
-  const collegeLogo = collegeSettings?.college_logo || collegeSettings?.system_logo || '/logo.png';
+  const collegeLogo = getCollegeLogoUrl(collegeSettings?.college_logo || collegeSettings?.system_logo);
   const displayedCollegeLogo = isDark ? VNRVJIET_DARK_EMBLEM : collegeLogo;
   const collegeName = collegeSettings?.college_name || 'VNRVJIET';
   const hodDepartmentOptions = getOfficialDepartmentOptions(user?.assigned_departments || []);
@@ -72,6 +72,7 @@ export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobil
             src={displayedCollegeLogo}
             alt={`${collegeName} logo`}
             className="h-full w-full object-contain" 
+            onError={event => handleCollegeLogoError(event)}
           />
         </div>
 
@@ -251,3 +252,4 @@ export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobil
     </header>
   );
 }
+
