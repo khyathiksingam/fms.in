@@ -3,17 +3,78 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-300: #93c5fd;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
-  --color-brand-950: #172554;
+  /* VNRVJIET professional palette: navy blue, slate, and restrained gold. */
+  --color-blue-50: #f2f6fa;
+  --color-blue-100: #e4edf4;
+  --color-blue-200: #c9d8e5;
+  --color-blue-300: #a3bbcf;
+  --color-blue-400: #7293af;
+  --color-blue-500: #527693;
+  --color-blue-600: #355c7d;
+  --color-blue-700: #294966;
+  --color-blue-800: #213c54;
+  --color-blue-900: #1c3044;
+  --color-blue-950: #111f2e;
+
+  --color-indigo-50: #f3f6f8;
+  --color-indigo-100: #e4ebf0;
+  --color-indigo-200: #c9d7e2;
+  --color-indigo-300: #abc1d1;
+  --color-indigo-400: #7f9eb7;
+  --color-indigo-500: #5e7f9b;
+  --color-indigo-600: #466880;
+  --color-indigo-700: #36546b;
+  --color-indigo-800: #2b4358;
+  --color-indigo-900: #223649;
+  --color-indigo-950: #152536;
+
+  --color-violet-50: #f4f3f7;
+  --color-violet-100: #e9e7ef;
+  --color-violet-200: #d2cfdf;
+  --color-violet-300: #b7b2cc;
+  --color-violet-400: #918ba9;
+  --color-violet-500: #756e91;
+  --color-violet-600: #625c7c;
+  --color-violet-700: #504b67;
+  --color-violet-800: #413e54;
+  --color-violet-900: #353345;
+  --color-violet-950: #242332;
+
+  --color-purple-50: #f6f3f5;
+  --color-purple-100: #eee7eb;
+  --color-purple-200: #ddcfd7;
+  --color-purple-300: #c5aebb;
+  --color-purple-400: #a88799;
+  --color-purple-500: #8c6a7e;
+  --color-purple-600: #76566a;
+  --color-purple-700: #614655;
+  --color-purple-800: #503b48;
+  --color-purple-900: #43343d;
+  --color-purple-950: #2b2229;
+
+  --color-amber-50: #fbf7ef;
+  --color-amber-100: #f4ead6;
+  --color-amber-200: #e9d3a8;
+  --color-amber-300: #d9b871;
+  --color-amber-400: #c99d4e;
+  --color-amber-500: #b98738;
+  --color-amber-600: #9b6b2b;
+  --color-amber-700: #7d5425;
+  --color-amber-800: #654423;
+  --color-amber-900: #533a21;
+  --color-amber-950: #302013;
+
+  --color-brand-50: #f2f6fa;
+  --color-brand-100: #e4edf4;
+  --color-brand-200: #c9d8e5;
+  --color-brand-300: #a3bbcf;
+  --color-brand-400: #7293af;
+  --color-brand-500: #527693;
+  --color-brand-600: #355c7d;
+  --color-brand-700: #294966;
+  --color-brand-800: #213c54;
+  --color-brand-900: #1c3044;
+  --color-brand-950: #111f2e;
   
   --color-slate-750: #243247;
   --color-slate-850: #151e2e;
@@ -30,16 +91,16 @@
   }
 
   body {
-    background-color: #f8fafc;
-    color: #0f172a;
+    background-color: #f5f7fa;
+    color: #1d2939;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   html.dark body {
-    background-color: #090d16;
-    color: #f1f5f9;
+    background-color: #111820;
+    color: #e7edf3;
   }
 }
 
@@ -50,12 +111,12 @@
 
 /* Primary and Accent Action Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, #1d4ed8 0%, #4f46e5 50%, #2563eb 100%);
+  background: linear-gradient(135deg, #203e59 0%, #315c7d 58%, #3e6b89 100%);
   color: #ffffff !important;
   font-weight: 700;
   border-radius: 0.75rem;
   padding: 0.5rem 1rem;
-  box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.25);
+  box-shadow: 0 4px 14px 0 rgba(32, 62, 89, 0.18);
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
@@ -64,8 +125,8 @@
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #1e40af 0%, #4338ca 50%, #1d4ed8 100%);
-  box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.35);
+  background: linear-gradient(135deg, #19334c 0%, #294966 58%, #355c7d 100%);
+  box-shadow: 0 6px 20px 0 rgba(32, 62, 89, 0.24);
   transform: translateY(-1px);
 }
 
@@ -100,41 +161,41 @@ html.dark .btn-secondary:hover {
 /* Modern Card & Component Elevation */
 .app-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e1e7ee;
   border-radius: 1.25rem;
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html.dark .app-card {
-  background: #111827;
-  border-color: #1f2937;
+  background: #19232e;
+  border-color: #293746;
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4);
 }
 
 .app-card:hover {
-  border-color: #cbd5e1;
+  border-color: #c6d1dc;
   box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.06), 0 8px 10px -6px rgb(0 0 0 / 0.04);
 }
 
 html.dark .app-card:hover {
-  border-color: #374151;
+  border-color: #3a4a5a;
 }
 
 html.dark [class~="bg-white"]:not([class*="dark:bg-"]) {
-  background-color: #111827;
+  background-color: #19232e;
 }
 
 html.dark [class~="bg-slate-50"]:not([class*="dark:bg-"]),
 html.dark [class*="bg-slate-50/"]:not([class*="dark:bg-"]),
 html.dark [class~="bg-gray-50"]:not([class*="dark:bg-"]) {
-  background-color: #0f172a;
+  background-color: #141e28;
 }
 
 html.dark [class~="bg-slate-100"]:not([class*="dark:bg-"]),
 html.dark [class*="bg-slate-100/"]:not([class*="dark:bg-"]),
 html.dark [class~="bg-gray-100"]:not([class*="dark:bg-"]) {
-  background-color: #1e293b;
+  background-color: #202d39;
 }
 
 html.dark [class~="text-slate-900"]:not([class*="dark:text-"]),
@@ -194,11 +255,11 @@ html.dark textarea::placeholder {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #edf1f5;
 }
 
 html.dark ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #141e28;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -213,3 +274,4 @@ html.dark ::-webkit-scrollbar-thumb {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
