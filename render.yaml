@@ -3,7 +3,7 @@ services:
     name: ffms-api
     runtime: node
     plan: free
-    buildCommand: npm ci
+    buildCommand: npm ci --include=dev && npm --prefix frontend install --include=dev && npm --prefix frontend run build
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -18,7 +18,7 @@ services:
       - key: FFMS_HOD_TEMP_PASSWORD
         sync: false
       - key: CORS_ORIGINS
-        value: https://fmsin.vercel.app,https://fms-nchjwtdup-khyathik.vercel.app
+        value: https://fmsin.vercel.app,https://fms-nchjwtdup-khyathik.vercel.app,https://resourcehub-demo.vercel.app
       - key: FFMS_DISABLE_STUDENT_EMAIL_VERIFICATION
         value: true
       - key: BREVO_API_KEY
