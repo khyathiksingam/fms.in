@@ -38,8 +38,9 @@ const fileController = {
           targetDeptId = folder.department_id;
         }
       }
-      if (user.role_name === 'hod' && targetDeptId &&
-          !user.department_ids?.includes(Number(targetDeptId))) {
+      if ((user.role_name === 'hod' && targetDeptId &&
+          !user.department_ids?.includes(Number(targetDeptId))) ||
+          (user.role_name === 'staff' && targetDeptId && Number(targetDeptId) !== Number(user.department_id))) {
         return res.status(403).json({ error: 'You can only upload files to your assigned departments.' });
       }
 
@@ -69,7 +70,7 @@ const fileController = {
           user.id,
           targetDeptId,
           fileVisibility,
-          user.role_name === 'faculty' ? 'pending' : 'approved'
+          ['faculty', 'staff'].includes(user.role_name) ? 'pending' : 'approved'
         ]);
 
         const insertedFile = result.lastID
@@ -145,8 +146,9 @@ const fileController = {
         limit = 50
       } = req.query;
 
-      if (user.role_name === 'hod' && department_id &&
-          !user.department_ids?.includes(Number(department_id))) {
+      if ((user.role_name === 'hod' && department_id &&
+          !user.department_ids?.includes(Number(department_id))) ||
+          (user.role_name === 'staff' && department_id && Number(department_id) !== Number(user.department_id))) {
         return res.status(403).json({ error: 'You are not assigned to the selected department.' });
       }
 
@@ -173,7 +175,7 @@ const fileController = {
       if (scope === 'trash') {
         sql += " AND f.deleted_at IS NOT NULL";
         // Permissions for Trash
-        if (user.role_name === 'faculty') {
+        if (['faculty', 'staff'].includes(user.role_name)) {
           sql += " AND f.owner_id = ?";
           params.push(user.id);
         } else if (user.role_name === 'hod') {
@@ -203,7 +205,7 @@ const fileController = {
           params.push(department_id || user.department_id || -1);
         } else {
           // General file browsing RBAC:
-          if (user.role_name === 'faculty') {
+          if (['faculty', 'staff'].includes(user.role_name)) {
             sql += ` AND (
               f.owner_id = ? 
               OR (COALESCE(f.visibility, 'public') = 'public' AND (f.department_id = ? OR f.department_id IS NULL))
@@ -704,7 +706,7 @@ const fileController = {
       let sql = "SELECT * FROM files WHERE deleted_at IS NOT NULL";
       const params = [];
 
-      if (user.role_name === 'faculty') {
+      if (['faculty', 'staff'].includes(user.role_name)) {
         sql += " AND owner_id = ?";
         params.push(user.id);
       } else if (user.role_name === 'hod') {
@@ -805,7 +807,7 @@ const fileController = {
       let sql = "SELECT * FROM files WHERE deleted_at IS NOT NULL";
       const params = [];
 
-      if (user.role_name === 'faculty') {
+      if (['faculty', 'staff'].includes(user.role_name)) {
         sql += " AND owner_id = ?";
         params.push(user.id);
       } else if (user.role_name === 'hod') {

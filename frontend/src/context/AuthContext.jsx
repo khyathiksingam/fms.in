@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api, getToken, setToken } from '../utils/api';
+import { getOfficialDepartmentLabel } from '../utils/officialDepartments';
 
 const AuthContext = createContext();
 
@@ -13,7 +14,12 @@ function withActiveDepartment(profile) {
     || profile.assigned_departments.find(department => department.id === profile.department_id)
     || profile.assigned_departments[0];
   localStorage.setItem('ffms_active_department', String(selected.id));
-  return { ...profile, department_id: selected.id, department_name: selected.name, department_code: selected.code };
+  return {
+    ...profile,
+    department_id: selected.id,
+    department_name: getOfficialDepartmentLabel(selected.code, selected.name),
+    department_code: selected.code
+  };
 }
 
 export function AuthProvider({ children }) {
@@ -128,6 +134,7 @@ export function AuthProvider({ children }) {
   const isAdmin = user?.role_name === 'admin';
   const isHOD = user?.role_name === 'hod';
   const isFaculty = user?.role_name === 'faculty';
+  const isStaff = user?.role_name === 'staff';
 
   return (
     <AuthContext.Provider
@@ -143,6 +150,7 @@ export function AuthProvider({ children }) {
         isAdmin,
         isHOD,
         isFaculty,
+        isStaff,
         isAuthenticated: Boolean(user)
       }}
     >

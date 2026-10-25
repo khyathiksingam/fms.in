@@ -26,12 +26,14 @@ async function expireSession(session) {
     FROM users u JOIN roles r ON r.id = u.role_id
     WHERE u.id = ?
   `, [session.user_id]);
-  if (user && ['faculty', 'hod', 'admin'].includes(user.role_name)) {
+  if (user && ['faculty', 'staff', 'hod', 'admin'].includes(user.role_name)) {
+    const roleLabel = user.role_name === 'hod' ? 'HOD' : user.role_name === 'admin' ? 'Admin' : user.role_name === 'staff' ? 'Staff' : 'Faculty';
     await dbHelper.run(`
       INSERT INTO activity_logs (user_id, action, department_id, session_id, metadata, created_at)
-      VALUES (?, 'Faculty Session Expired', ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?)
     `, [
       user.id,
+      `${roleLabel} Session Expired`,
       user.department_id,
       session.id,
       JSON.stringify({

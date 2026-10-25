@@ -1,5 +1,13 @@
 const { dbHelper } = require('../config/db');
 
+function normalizeLoginActivity(logs) {
+  return logs.map(log => {
+    if (!['Faculty Login', 'Faculty Logout'].includes(log.action)) return log;
+    const roleLabel = log.user_role === 'hod' ? 'HOD' : log.user_role === 'admin' ? 'Admin' : log.user_role === 'staff' ? 'Staff' : null;
+    return roleLabel ? { ...log, action: `${roleLabel} ${log.action.slice('Faculty '.length)}` } : log;
+  });
+}
+
 const analyticsController = {
   async getDashboardStats(req, res) {
     try {
@@ -23,9 +31,10 @@ const analyticsController = {
 
         // Recent activity
         const recentActivity = await dbHelper.all(`
-          SELECT a.*, COALESCE(u.full_name, 'Potta Devika') as user_name, u.username, d.name as department_name
+          SELECT a.*, COALESCE(u.full_name, 'Potta Devika') as user_name, u.username, r.name AS user_role, d.name as department_name
           FROM activity_logs a
           LEFT JOIN users u ON a.user_id = u.id
+          LEFT JOIN roles r ON u.role_id = r.id
           LEFT JOIN departments d ON a.department_id = d.id
           ORDER BY a.created_at DESC
           LIMIT 8
@@ -55,7 +64,7 @@ const analyticsController = {
             filesUploadedToday: uploadedToday?.count || 0,
             storageQuotaBytes: 100 * 1024 * 1024 * 1024 // 100 GB quota
           },
-          recentActivity,
+          recentActivity: normalizeLoginActivity(recentActivity),
           recentFiles
         });
       } else if (user.role_name === 'hod') {
@@ -82,9 +91,10 @@ const analyticsController = {
         `, [deptId, user.id]);
 
         const deptActivity = await dbHelper.all(`
-          SELECT a.*, COALESCE(u.full_name, 'Potta Devika') as user_name, u.username
+          SELECT a.*, COALESCE(u.full_name, 'Potta Devika') as user_name, u.username, r.name AS user_role
           FROM activity_logs a
           LEFT JOIN users u ON a.user_id = u.id
+          LEFT JOIN roles r ON u.role_id = r.id
           WHERE a.department_id = ? OR a.user_id = ?
           ORDER BY a.created_at DESC
           LIMIT 8
@@ -101,11 +111,16 @@ const analyticsController = {
           },
           recentUploads,
           recentFiles: recentUploads,
-          deptActivity,
-          recentActivity: deptActivity
+          deptActivity: normalizeLoginActivity(deptActivity),
+          recentActivity: normalizeLoginActivity(deptActivity)
         });
       } else {
         // Faculty Dashboard Metrics
+        const [totalFaculty, totalDepartments, collegeFiles] = await Promise.all([
+          dbHelper.get("SELECT COUNT(*) as count FROM users u JOIN roles r ON u.role_id = r.id WHERE r.name = 'faculty' AND u.status = 'active'"),
+          dbHelper.get('SELECT COUNT(*) as count FROM departments WHERE active = 1'),
+          dbHelper.get('SELECT COUNT(*) as count FROM files WHERE deleted_at IS NULL')
+        ]);
         const myFiles = await dbHelper.get("SELECT COUNT(*) as count FROM files WHERE (owner_id = ? OR department_id = ?) AND deleted_at IS NULL", [user.id, user.department_id || -1]);
         const myStorage = await dbHelper.get("SELECT COALESCE(SUM(size), 0) as bytes FROM files WHERE (owner_id = ? OR department_id = ?) AND deleted_at IS NULL", [user.id, user.department_id || -1]);
         const myFolders = await dbHelper.get("SELECT COUNT(*) as count FROM folders WHERE created_by = ? OR department_id = ?", [user.id, user.department_id || -1]);
@@ -155,7 +170,9 @@ const analyticsController = {
         return res.json({
           role: 'faculty',
           stats: {
-            totalFiles: myFiles?.count || 0,
+            totalFaculty: totalFaculty?.count || 0,
+            totalDepartments: totalDepartments?.count || 0,
+            totalFiles: collegeFiles?.count || 0,
             myFilesCount: myFiles?.count || 0,
             storageUsedBytes: myStorage?.bytes || 0,
             myFoldersCount: myFolders?.count || 0,

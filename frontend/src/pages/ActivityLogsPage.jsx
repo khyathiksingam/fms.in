@@ -79,6 +79,12 @@ export default function ActivityLogsPage() {
           <option value="File Previewed">File Previewed</option>
           <option value="Faculty Login">Faculty Login</option>
           <option value="Faculty Logout">Faculty Logout</option>
+          <option value="HOD Login">HOD Login</option>
+          <option value="HOD Logout">HOD Logout</option>
+          <option value="Admin Login">Admin Login</option>
+          <option value="Admin Logout">Admin Logout</option>
+          <option value="Staff Login">Staff Login</option>
+          <option value="Staff Logout">Staff Logout</option>
           <option value="Faculty Session Expired">Faculty Session Expired</option>
           <option value="Syllabus Updated">Syllabus Updated</option>
           <option value="Syllabus Published">Syllabus Published</option>
@@ -114,8 +120,9 @@ export default function ActivityLogsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {logs.map((log) => (
-                <tr key={log.id} className="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+              {logs.map((log) => {
+                const activityDetails = formatActivityDetails(log);
+                return <tr key={log.id} className="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
                   <td className="py-3 pl-4 pr-2">
                     <span className="font-semibold text-slate-900 dark:text-slate-100">
                       {log.action}
@@ -136,15 +143,21 @@ export default function ActivityLogsPage() {
                   </td>
 
                   <td className="px-3 py-3 text-slate-500 max-w-xs">
-                    {log.file_name ? (
-                      <span className="font-medium text-slate-700 dark:text-slate-300">{log.file_name}</span>
-                    ) : log.folder_name ? (
-                      <span>Folder: {log.folder_name}</span>
-                    ) : (
-                      <span className="font-mono text-[11px]">
-                        {JSON.stringify(log.metadata || {})}
-                      </span>
-                    )}
+                    <div className="space-y-1 break-words">
+                      {log.file_name ? (
+                        <p className="font-medium text-slate-700 dark:text-slate-300">{log.file_name}</p>
+                      ) : log.folder_name ? (
+                        <p className="font-medium text-slate-700 dark:text-slate-300">Folder: {log.folder_name}</p>
+                      ) : null}
+                      {activityDetails.map(detail => (
+                        <p key={detail.key} className="text-[11px] text-slate-500 dark:text-slate-400">
+                          <span className="font-semibold text-slate-600 dark:text-slate-300">{detail.label}:</span> {detail.value}
+                        </p>
+                      ))}
+                      {!log.file_name && !log.folder_name && !activityDetails.length && (
+                        <span className="text-[11px] text-slate-400">—</span>
+                      )}
+                    </div>
                     {log.session_id && (
                       <span className="mt-1 block text-[10px] text-slate-400">
                         {log.session_duration_seconds !== null && log.session_duration_seconds !== undefined
@@ -161,8 +174,8 @@ export default function ActivityLogsPage() {
                   <td className="py-3 pl-3 pr-4 text-right text-slate-500 whitespace-nowrap">
                     {formatDate(log.created_at)}
                   </td>
-                </tr>
-              ))}
+                </tr>;
+              })}
             </tbody>
           </table>
         </div>
@@ -202,4 +215,60 @@ function formatSessionDuration(value) {
   if (hours) return `${hours}h ${minutes}m`;
   if (minutes) return `${minutes}m ${remainingSeconds}s`;
   return `${remainingSeconds}s`;
+}
+
+const METADATA_LABELS = {
+  catalogue_id: 'Catalogue entry',
+  subject_code: 'Subject code',
+  filename: 'File',
+  file_name: 'File',
+  file_count: 'Files',
+  user_count: 'Users shared with',
+  dept_count: 'Departments shared with',
+  session_duration: 'Session duration',
+  created_user_id: 'Created user ID',
+  target_user_id: 'Target user ID',
+  assigned_user_id: 'Assigned user ID',
+  uploader_id: 'Uploader ID',
+  old_name: 'Previous name',
+  new_name: 'New name',
+  old_visibility: 'Previous visibility',
+  new_visibility: 'New visibility'
+};
+
+function formatMetadataLabel(key) {
+  return METADATA_LABELS[key] || key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function formatMetadataValue(value) {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (Array.isArray(value)) return value.map(formatMetadataValue).join(', ');
+  if (typeof value === 'object') {
+    return Object.entries(value)
+      .map(([key, nestedValue]) => `${formatMetadataLabel(key)}: ${formatMetadataValue(nestedValue)}`)
+      .join(' · ');
+  }
+  return String(value);
+}
+
+function formatActivityDetails(log) {
+  let metadata = log.metadata;
+  if (typeof metadata === 'string') {
+    try {
+      metadata = JSON.parse(metadata);
+    } catch {
+      metadata = { details: metadata };
+    }
+  }
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return [];
+
+  const hasTargetName = Boolean(log.file_name || log.folder_name);
+  return Object.entries(metadata)
+    .filter(([key, value]) => value !== null && value !== undefined && value !== '' &&
+      !(hasTargetName && ['name', 'filename', 'file_name'].includes(key)))
+    .map(([key, value]) => ({ key, label: formatMetadataLabel(key), value: formatMetadataValue(value) }));
 }

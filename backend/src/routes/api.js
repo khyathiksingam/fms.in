@@ -72,7 +72,7 @@ router.get('/syllabus/files', authenticate, requireRoles('admin', 'hod', 'facult
 router.get('/syllabus/filters', authenticate, requireRoles('admin', 'hod', 'faculty'), syllabusController.getCatalogueFilters);
 router.post('/syllabus', authenticate, requireRoles('admin', 'hod', 'faculty'), syllabusController.createCatalogueEntry);
 router.put('/syllabus/:id', authenticate, requireRoles('admin', 'hod', 'faculty'), syllabusController.updateCatalogueEntry);
-router.patch('/syllabus/:id/published', authenticate, requireRoles('admin'), syllabusController.setPublished);
+router.patch('/syllabus/:id/published', authenticate, requireRoles('admin', 'hod', 'faculty'), syllabusController.setPublished);
 router.delete('/syllabus/:id', authenticate, requireRoles('admin', 'hod', 'faculty'), syllabusController.deleteCatalogueEntry);
 router.get('/academic-regulations', authenticate, requireRoles('admin'), academicRegulationController.list);
 router.post('/academic-regulations', authenticate, requireRoles('admin'), academicRegulationController.create);
@@ -83,7 +83,7 @@ router.patch('/academic-regulations/:id/status', authenticate, requireRoles('adm
 router.get('/users', authenticate, userController.getAllUsers);
 router.get('/users/roles', authenticate, userController.getRoles);
 router.get('/users/:id', authenticate, userController.getUserById);
-router.post('/users', authenticate, requireRoles('admin'), userController.createUser);
+router.post('/users', authenticate, requireRoles('admin', 'hod'), userController.createUser);
 router.put('/users/:id', authenticate, requireRoles('admin'), userController.updateUser);
 router.patch('/users/:id/toggle-status', authenticate, requireRoles('admin'), userController.toggleUserStatus);
 router.post('/users/:id/reset-password', authenticate, requireRoles('admin'), userController.resetPassword);

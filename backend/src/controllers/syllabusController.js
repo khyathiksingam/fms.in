@@ -60,7 +60,7 @@ async function hasStoredPdfSignature(storagePath) {
     const { bytesRead } = await handle.read(header, 0, header.length, 0);
     return header.toString('latin1', 0, bytesRead).includes('%PDF-');
   } catch (error) {
-    if (error.code === 'ENOENT') return false;
+    if (['ENOENT', 'EPERM', 'EACCES', 'EBUSY'].includes(error.code)) return false;
     throw error;
   } finally {
     if (handle) await handle.close();
@@ -76,7 +76,6 @@ function parseCatalogueBody(body, requireFile = true) {
   const fields = [
     ['program', 80, 'Program'],
     ['regulation', 80, 'Regulation'],
-    ['academic_year', 40, 'Academic year'],
     ['branch_code', 80, 'Branch'],
     ['semester', 20, 'Semester'],
     ['subject_code', 80, 'Subject code'],
@@ -89,6 +88,12 @@ function parseCatalogueBody(body, requireFile = true) {
     if (error) return { error };
     values[key] = value.trim();
   }
+
+  const academicYear = body.academic_year === undefined ? '' : body.academic_year;
+  if (typeof academicYear !== 'string' || academicYear.trim().length > 40) {
+    return { error: 'Academic year must be no longer than 40 characters.' };
+  }
+  values.academic_year = academicYear.trim();
 
   const departmentId = Number(body.department_id);
   if (!Number.isInteger(departmentId) || departmentId < 1) {
@@ -189,72 +194,91 @@ async function getValidPublicRecords(filters = {}) {
   const params = [];
   const query = appendFilters(CATALOGUE_SELECT, params, { filters });
   const records = await dbHelper.all(
-    `${query} ORDER BY c.regulation DESC, c.academic_year DESC, c.semester, c.subject_code`,
+    `${query} ORDER BY c.regulation DESC, CAST(c.semester AS INTEGER), c.subject_code`,
     params
   );
   return filterValidStoredPdfs(records);
 }
 
-function sendPdf(req, res, record, download) {
+async function sendPdf(req, res, record, download) {
   const storagePath = record.storage_path || record.file_storage_path || (record.file && record.file.storage_path);
   if (!storagePath) return res.status(404).json({ error: 'Syllabus PDF is unavailable.' });
   const fullPath = getStoragePath(storagePath);
-  if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'Syllabus PDF is unavailable.' });
-
-  const stat = fs.statSync(fullPath);
-  const signature = Buffer.alloc(Math.min(1024, stat.size));
-  const descriptor = fs.openSync(fullPath, 'r');
-  let bytesRead;
+  let fileHandle;
   try {
-    bytesRead = fs.readSync(descriptor, signature, 0, signature.length, 0);
-  } finally {
-    fs.closeSync(descriptor);
-  }
-  if (!signature.toString('latin1', 0, bytesRead).includes('%PDF-')) {
-    console.error('Stored syllabus resource is not a PDF:', record.storage_path);
-    return res.status(422).json({ error: 'The stored syllabus resource is not a valid PDF.' });
-  }
-
-  const range = req.headers.range;
-  const safeName = path.basename(record.original_name || record.name || 'syllabus.pdf');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Cache-Control', 'private, no-store');
-  res.setHeader('Accept-Ranges', 'bytes');
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader(
-    'Content-Disposition',
-    `${download ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(safeName)}`
-  );
-
-  if (range) {
-    const match = /^bytes=(\d*)-(\d*)$/.exec(range);
-    if (!match || (!match[1] && !match[2])) {
-      res.setHeader('Content-Range', `bytes */${stat.size}`);
-      return res.status(416).end();
+    fileHandle = await fs.promises.open(fullPath, 'r');
+    const stat = await fileHandle.stat();
+    const signature = Buffer.alloc(Math.min(1024, stat.size));
+    const { bytesRead } = await fileHandle.read(signature, 0, signature.length, 0);
+    if (!signature.toString('latin1', 0, bytesRead).includes('%PDF-')) {
+      await fileHandle.close();
+      console.error('Stored syllabus resource is not a PDF:', record.id);
+      return res.status(422).json({ error: 'The stored syllabus resource is not a valid PDF.' });
     }
-    const start = match[1] ? Number(match[1]) : Math.max(0, stat.size - Number(match[2]));
-    const end = match[2] && match[1] ? Number(match[2]) : stat.size - 1;
-    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start > end || start >= stat.size) {
-      res.setHeader('Content-Range', `bytes */${stat.size}`);
-      return res.status(416).end();
+
+    const range = req.headers.range;
+    let start = 0;
+    let end = stat.size - 1;
+    let status = 200;
+    if (range) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+      if (!match || (!match[1] && !match[2])) {
+        await fileHandle.close();
+        res.setHeader('Content-Range', `bytes */${stat.size}`);
+        return res.status(416).end();
+      }
+      start = match[1] ? Number(match[1]) : Math.max(0, stat.size - Number(match[2]));
+      end = match[2] && match[1] ? Number(match[2]) : stat.size - 1;
+      if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start > end || start >= stat.size) {
+        await fileHandle.close();
+        res.setHeader('Content-Range', `bytes */${stat.size}`);
+        return res.status(416).end();
+      }
+      end = Math.min(end, stat.size - 1);
+      status = 206;
     }
-    const boundedEnd = Math.min(end, stat.size - 1);
-    res.writeHead(206, {
-      'Content-Range': `bytes ${start}-${boundedEnd}/${stat.size}`,
-      'Content-Length': boundedEnd - start + 1
+
+    const safeName = path.basename(record.original_name || record.name || 'syllabus.pdf');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(safeName)}`);
+    if (status === 206) {
+      res.writeHead(status, {
+        'Content-Range': `bytes ${start}-${end}/${stat.size}`,
+        'Content-Length': end - start + 1
+      });
+    } else {
+      res.setHeader('Content-Length', stat.size);
+    }
+
+    const stream = fileHandle.createReadStream({ autoClose: true, start, end });
+    stream.on('error', error => {
+      console.error(`Could not stream syllabus PDF ${record.id}:`, error.code || error.message);
+      if (!res.headersSent) {
+        res.status(['EPERM', 'EACCES', 'EBUSY'].includes(error.code) ? 503 : 404)
+          .json({ error: 'The syllabus PDF is temporarily unavailable. Please try again.' });
+      } else {
+        res.destroy(error);
+      }
     });
-    return fs.createReadStream(fullPath, { start, end: boundedEnd }).pipe(res);
+    return stream.pipe(res);
+  } catch (error) {
+    if (fileHandle) await fileHandle.close().catch(() => {});
+    console.error(`Could not open syllabus PDF ${record.id}:`, error.code || error.message);
+    const status = ['EPERM', 'EACCES', 'EBUSY'].includes(error.code) ? 503 : error.code === 'ENOENT' ? 404 : 500;
+    return res.status(status).json({ error: status === 503
+      ? 'The syllabus PDF is temporarily unavailable. Please try again.'
+      : 'Syllabus PDF is unavailable.' });
   }
-
-  res.setHeader('Content-Length', stat.size);
-  return fs.createReadStream(fullPath).pipe(res);
 }
 
 const syllabusController = {
   async getPublicMasterData(req, res) {
     try {
       res.setHeader('Cache-Control', 'no-store');
-      const [regulations, departments, resources] = await Promise.all([
+      const [regulations, departments, resources, totalFaculty, totalDepartments, totalFiles] = await Promise.all([
         dbHelper.all(`
           SELECT r.id, r.code, r.display_name, r.programme, r.effective_from, r.description, r.sort_order
           FROM academic_regulations r
@@ -272,7 +296,10 @@ const syllabusController = {
                      ELSE 4
                    END, d.sort_order ASC, d.name COLLATE NOCASE ASC
         `),
-        getValidPublicRecords()
+        getValidPublicRecords(),
+        dbHelper.get("SELECT COUNT(*) AS count FROM users u JOIN roles r ON r.id = u.role_id WHERE r.name = 'faculty' AND u.status = 'active'"),
+        dbHelper.get('SELECT COUNT(*) AS count FROM departments WHERE active = 1'),
+        dbHelper.get('SELECT COUNT(*) AS count FROM files WHERE deleted_at IS NULL')
       ]);
       const regulationCounts = new Map();
       const departmentCounts = new Map();
@@ -281,6 +308,11 @@ const syllabusController = {
         departmentCounts.set(resource.department_id, (departmentCounts.get(resource.department_id) || 0) + 1);
       }
       res.json({
+        portalStats: {
+          totalFaculty: totalFaculty?.count || 0,
+          totalDepartments: totalDepartments?.count || 0,
+          totalFiles: totalFiles?.count || 0
+        },
         regulations: regulations.map(row => ({ ...row, document_count: regulationCounts.get(row.code) || 0 })),
         departments: departments.map(row => ({ ...row, document_count: departmentCounts.get(row.id) || 0 }))
       });
@@ -333,12 +365,11 @@ const syllabusController = {
         programs: [...programCounts].map(([value, count]) => ({ value, count })).sort((a, b) => a.value.localeCompare(b.value)),
         regulations: regulations.map(row => row.value),
         regulation_details: regulations,
-        academic_years: uniqueSorted('academic_year', (a, b) => b.localeCompare(a)),
         departments,
         branches: uniqueSorted('branch_code', (a, b) => a.localeCompare(b)),
         semesters: uniqueSorted('semester', (a, b) => Number(a) - Number(b)),
-        subjects: resources.map(({ id, program, regulation, academic_year, subject_code, subject_name, resource_type, department_id, branch_code, semester, department_name, department_code, faculty_uploader_id, faculty_uploader_name }) => ({
-          id, program, regulation, academic_year, subject_code, subject_name,
+        subjects: resources.map(({ id, program, regulation, subject_code, subject_name, resource_type, department_id, branch_code, semester, department_name, department_code, faculty_uploader_id, faculty_uploader_name }) => ({
+          id, program, regulation, subject_code, subject_name,
           resource_type, department_id, branch_code, semester, department_name,
           department_code, faculty_uploader_id, faculty_uploader_name
         }))
@@ -421,7 +452,7 @@ const syllabusController = {
       const limit = parsePage(req.query.limit, 20, 100);
       if (!page || !limit) return res.status(400).json({ error: 'Page and limit must be valid positive integers.' });
       const filters = {};
-      for (const key of ['program', 'regulation', 'academic_year', 'department_id', 'branch_code', 'semester', 'subject_id']) {
+      for (const key of ['program', 'regulation', 'department_id', 'branch_code', 'semester', 'subject_id']) {
         if (req.query[key] !== undefined && req.query[key] !== '') filters[key] = req.query[key];
       }
       if (req.query.resource_type !== undefined) {
@@ -449,7 +480,7 @@ const syllabusController = {
         }
         filters.department_ids = [...new Set(departmentIds)];
       }
-      for (const key of ['program', 'regulation', 'academic_year', 'branch_code', 'semester']) {
+      for (const key of ['program', 'regulation', 'branch_code', 'semester']) {
         if (filters[key] !== undefined && (typeof filters[key] !== 'string' || filters[key].length > 120)) {
           return res.status(400).json({ error: 'A syllabus filter value is invalid or too long.' });
         }
@@ -473,13 +504,13 @@ const syllabusController = {
 
       const params = [];
       let sql = appendFilters(CATALOGUE_SELECT, params, { filters });
-      sql += ' ORDER BY c.regulation DESC, c.academic_year DESC, c.semester, c.subject_code';
+      sql += ' ORDER BY c.regulation DESC, CAST(c.semester AS INTEGER), c.subject_code';
       const rows = await filterValidStoredPdfs(await dbHelper.all(sql, params));
       const total = rows.length;
       // Never expose internal storage paths or soft-delete/visibility columns to the
       // public (anonymous) Student Portal listing.
       res.json({
-        syllabus: rows.slice((page - 1) * limit, page * limit).map(({ deleted_at, visibility, storage_path, ...row }) => row),
+        syllabus: rows.slice((page - 1) * limit, page * limit).map(({ deleted_at, visibility, storage_path, academic_year, ...row }) => row),
         pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
       });
     } catch (error) {
@@ -589,7 +620,7 @@ const syllabusController = {
       if (!file || file.deleted_at !== null) return res.status(404).json({ error: 'Active file not found.' });
       if (!isPdf(file)) return res.status(400).json({ error: 'Only PDF files can be added to the syllabus catalogue.' });
       if (!await hasStoredPdfSignature(file.storage_path)) return res.status(400).json({ error: 'The uploaded file does not contain valid PDF data.' });
-      if (req.user.role_name === 'admin' && values.published && file.visibility !== 'public') {
+      if (values.published && file.visibility !== 'public') {
         return res.status(400).json({ error: 'Only public files can be published in the syllabus library.' });
       }
       if (req.user.role_name !== 'admin' && file.owner_id !== req.user.id &&
@@ -604,7 +635,8 @@ const syllabusController = {
       if (!department) return res.status(400).json({ error: 'The selected department does not exist.' });
       const regulation = await dbHelper.get('SELECT id FROM academic_regulations WHERE code = ? AND active = 1', [values.regulation]);
       if (!regulation) return res.status(400).json({ error: 'The selected regulation is not active.' });
-      const published = req.user.role_name === 'admin' && values.published;
+      const published = ['admin', 'hod', 'faculty'].includes(req.user.role_name) && values.published;
+      const studentVisible = values.student_visible || (published && req.user.role_name !== 'admin');
       const created = await dbHelper.run(`
         INSERT INTO syllabus_catalog (
           file_id, program, regulation, academic_year, department_id, branch_code,
@@ -614,7 +646,7 @@ const syllabusController = {
       `, [
         values.file_id, values.program, values.regulation, values.academic_year,
         values.department_id, values.branch_code, values.semester, values.subject_code,
-        values.subject_name, values.resource_type, values.student_visible ? 1 : 0,
+        values.subject_name, values.resource_type, studentVisible ? 1 : 0,
         published ? 1 : 0, published ? 1 : 0, req.user.id
       ]);
       await dbHelper.run(
@@ -675,9 +707,9 @@ const syllabusController = {
       if (req.user.role_name === 'hod' && !req.user.department_ids?.includes(fileDetails.department_id)) {
         return res.status(403).json({ error: 'You may only manage PDF files in your department.' });
       }
-      const published = req.user.role_name === 'admin'
-        ? (req.body.published === undefined ? Boolean(existing.published) : parsed.values.published)
-        : Boolean(existing.published);
+      const published = req.body.published === undefined
+        ? Boolean(existing.published)
+        : (['admin', 'hod', 'faculty'].includes(req.user.role_name) && parsed.values.published);
       if (published && fileDetails.visibility !== 'public') {
         return res.status(400).json({ error: 'Only public files can be published in the syllabus library.' });
       }
@@ -686,7 +718,8 @@ const syllabusController = {
         UPDATE syllabus_catalog
         SET file_id = ?, program = ?, regulation = ?, academic_year = ?,
             department_id = ?, branch_code = ?, semester = ?, subject_code = ?,
-            subject_name = ?, resource_type = ?, student_visible = ?, published = ?,
+            subject_name = ?, resource_type = ?,
+            student_visible = CASE WHEN ? = 1 THEN 1 ELSE ? END, published = ?,
             published_at = CASE WHEN ? = 1 THEN COALESCE(published_at, CURRENT_TIMESTAMP) ELSE NULL END,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
@@ -694,6 +727,7 @@ const syllabusController = {
         fileId, parsed.values.program, parsed.values.regulation, parsed.values.academic_year,
         parsed.values.department_id, parsed.values.branch_code, parsed.values.semester,
         parsed.values.subject_code, parsed.values.subject_name, parsed.values.resource_type,
+        published && req.user.role_name !== 'admin' ? 1 : 0,
         parsed.values.student_visible ? 1 : 0, published ? 1 : 0,
         published ? 1 : 0, id
       ]);
@@ -737,11 +771,18 @@ const syllabusController = {
         return res.status(400).json({ error: 'A valid entry id and published boolean are required.' });
       }
       const entry = await dbHelper.get(`
-        SELECT c.id, c.file_id, c.department_id, c.subject_code, c.published, f.visibility, f.deleted_at, f.storage_path
+        SELECT c.id, c.file_id, c.department_id, c.subject_code, c.created_by, c.published,
+               f.owner_id, f.visibility, f.deleted_at, f.storage_path
         FROM syllabus_catalog c JOIN files f ON f.id = c.file_id
         WHERE c.id = ?
       `, [id]);
       if (!entry) return res.status(404).json({ error: 'Syllabus entry not found.' });
+      if (req.user.role_name === 'faculty' && entry.created_by !== req.user.id && entry.owner_id !== req.user.id) {
+        return res.status(403).json({ error: 'You may only publish resources you submitted or uploaded.' });
+      }
+      if (req.user.role_name === 'hod' && !req.user.department_ids?.includes(entry.department_id)) {
+        return res.status(403).json({ error: 'You may only publish resources in your department.' });
+      }
       if (req.body.published && (entry.deleted_at !== null || entry.visibility !== 'public')) {
         return res.status(400).json({ error: 'Only active public files can be published.' });
       }
@@ -752,10 +793,11 @@ const syllabusController = {
       await dbHelper.run(`
         UPDATE syllabus_catalog
         SET published = ?,
+            student_visible = CASE WHEN ? = 1 THEN 1 ELSE student_visible END,
             published_at = CASE WHEN ? = 1 THEN COALESCE(published_at, CURRENT_TIMESTAMP) ELSE NULL END,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `, [published, published, id]);
+      `, [published, published && req.user.role_name !== 'admin' ? 1 : 0, published, id]);
       if (Boolean(entry.published) !== req.body.published) {
         await dbHelper.run(
           `INSERT INTO activity_logs (user_id, action, file_id, department_id, metadata)

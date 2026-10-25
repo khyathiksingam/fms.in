@@ -2,7 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const STORAGE_DIR = path.resolve(process.env.FFMS_STORAGE_DIR || path.resolve(__dirname, '../../storage/uploads'));
+const LEGACY_STORAGE_DIR = path.resolve(__dirname, '../../storage/uploads');
+const DEFAULT_LOCAL_STORAGE_DIR = process.platform === 'win32' && process.env.LOCALAPPDATA
+  ? path.join(process.env.LOCALAPPDATA, 'VNRVJIET', 'FFMS', 'uploads')
+  : LEGACY_STORAGE_DIR;
+const STORAGE_DIR = path.resolve(process.env.FFMS_STORAGE_DIR || DEFAULT_LOCAL_STORAGE_DIR);
 
 // Ensure directory exists
 if (!fs.existsSync(STORAGE_DIR)) {
@@ -12,7 +16,23 @@ if (!fs.existsSync(STORAGE_DIR)) {
 function getStoragePath(storedFilename) {
   // Prevent directory traversal
   const safeFilename = path.basename(storedFilename);
-  return path.join(STORAGE_DIR, safeFilename);
+  const currentPath = path.join(STORAGE_DIR, safeFilename);
+  if (fs.existsSync(currentPath) || STORAGE_DIR === LEGACY_STORAGE_DIR) return currentPath;
+
+  // Existing installations stored uploads beside the project, which may be in a
+  // OneDrive-managed folder. Copy legacy files into local app storage on first use.
+  const legacyPath = path.join(LEGACY_STORAGE_DIR, safeFilename);
+  try {
+    if (fs.existsSync(legacyPath)) {
+      fs.copyFileSync(legacyPath, currentPath, fs.constants.COPYFILE_EXCL);
+      return currentPath;
+    }
+  } catch (error) {
+    if (error.code !== 'EEXIST') {
+      console.warn(`Could not migrate legacy upload ${safeFilename}: ${error.code || error.message}`);
+    }
+  }
+  return fs.existsSync(legacyPath) ? legacyPath : currentPath;
 }
 
 function generateStorageFilename(originalName) {

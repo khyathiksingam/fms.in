@@ -56,7 +56,7 @@ const searchController = {
       const params = [user.id];
 
       // RBAC filtering
-      if (user.role_name === 'faculty') {
+      if (['faculty', 'staff'].includes(user.role_name)) {
         sql += ` AND (
           f.owner_id = ? 
           OR (COALESCE(f.visibility, 'public') = 'public' AND (f.department_id = ? OR f.department_id IS NULL))
@@ -93,8 +93,9 @@ const searchController = {
       }
 
       if (department_id) {
-        if (user.role_name === 'hod' &&
-            !user.department_ids?.includes(Number(department_id))) {
+        if ((user.role_name === 'hod' &&
+            !user.department_ids?.includes(Number(department_id))) ||
+            (user.role_name === 'staff' && Number(department_id) !== Number(user.department_id))) {
           return res.status(403).json({ error: 'You are not assigned to the selected department.' });
         }
         sql += " AND f.department_id = ?";

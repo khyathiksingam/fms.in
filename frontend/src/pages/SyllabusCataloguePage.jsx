@@ -255,7 +255,7 @@ export default function SyllabusCataloguePage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-extrabold text-slate-900 dark:text-white"><BookOpen className="h-5 w-5 text-indigo-600" /> {isAdmin ? 'Syllabus Catalogue' : 'My Student Resources'}</h1>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{isAdmin ? 'Manage PDF metadata and publication for the student library.' : 'Submit and manage your own resources; Admin review is required before student access.'}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{isAdmin ? 'Manage PDF metadata and publication for the student library.' : 'Manage your resources and publish them directly to the student library.'}</p>
         </div>
         {(activeTab === 'catalogue' || !isAdmin) && <button type="button" onClick={startCreate} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-700"><Plus className="h-4 w-4" /> {isAdmin ? 'Add syllabus' : 'Submit syllabus'}</button>}
       </div>
@@ -331,7 +331,6 @@ export default function SyllabusCataloguePage() {
                 </select>
                 {!masterDataLoading && !regulations.length && <span className="mt-1 block text-amber-700 dark:text-amber-300">Ask an Admin to configure active academic regulations.</span>}
               </label>
-              <TextField label="Academic Year" name="academic_year" form={form} setForm={setForm} maxLength={40} placeholder="e.g. 2025–26" />
               <label className="text-xs font-semibold">Department
                 <select required value={form.department_id} onChange={event => {
                   const department = availableDepartments.find(item => String(item.id) === event.target.value);
@@ -352,9 +351,9 @@ export default function SyllabusCataloguePage() {
               </label>
               <label className="flex items-center gap-2 self-end rounded-xl border border-slate-200 p-3 text-xs font-semibold dark:border-slate-700">
                 <input type="checkbox" checked={form.student_visible} onChange={event => setForm(current => ({ ...current, student_visible: event.target.checked }))} />
-                Visible to students after Admin publishes
+                Visible to students in the library
               </label>
-              {isAdmin && <label className="flex items-center gap-2 self-end rounded-xl border border-slate-200 p-3 text-xs font-semibold dark:border-slate-700">
+              {(isAdmin || isHOD || isFaculty) && <label className="flex items-center gap-2 self-end rounded-xl border border-slate-200 p-3 text-xs font-semibold dark:border-slate-700">
                 <input type="checkbox" checked={form.published} onChange={event => setForm(current => ({ ...current, published: event.target.checked }))} />
                 Publish in student library
               </label>}
@@ -401,15 +400,15 @@ export default function SyllabusCataloguePage() {
                     <span className="rounded-md bg-indigo-50 px-2 py-1 text-[10px] font-bold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">{record.subject_code}</span>
                     <span className="rounded-md bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200">{record.resource_type === 'faculty_note' ? 'Faculty Note' : 'Syllabus'}</span>
                     {record.student_visible && <span className="rounded-md bg-sky-50 px-2 py-1 text-[10px] font-bold text-sky-800 dark:bg-sky-950 dark:text-sky-200">Student visible</span>}
-                    <span className={`rounded-md px-2 py-1 text-[10px] font-bold ${record.published ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300'}`}>{record.published ? 'Published' : 'Unpublished / Review'}</span>
+                    <span className={`rounded-md px-2 py-1 text-[10px] font-bold ${record.published ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300'}`}>{record.published ? 'Published' : 'Unpublished'}</span>
                     {record.visibility !== 'public' && <span className="rounded-md bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-700 dark:bg-rose-950 dark:text-rose-300">File is private</span>}
                   </div>
                   <h3 className="mt-1 font-bold text-slate-900 dark:text-white">{record.subject_name}</h3>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{record.program} · {record.regulation} · {record.academic_year} · {record.branch_code} · Semester {record.semester}</p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{record.program} · {record.regulation} · {record.branch_code} · Semester {record.semester}</p>
                   <p className="mt-1 truncate text-xs text-slate-500" title={record.file_name}>{record.file_name}</p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
-                  {isAdmin && <button type="button" onClick={() => togglePublished(record)} disabled={!record.published && (record.visibility !== 'public' || record.deleted_at !== null)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold disabled:opacity-40 dark:border-slate-700">{record.published ? 'Unpublish' : 'Publish'}</button>}
+                  {(isAdmin || isHOD || isFaculty) && <button type="button" onClick={() => togglePublished(record)} disabled={!record.published && (record.visibility !== 'public' || record.deleted_at !== null)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold disabled:opacity-40 dark:border-slate-700">{record.published ? 'Unpublish' : 'Publish'}</button>}
                   <button type="button" onClick={() => startEdit(record)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold dark:border-slate-700"><Pencil className="h-3.5 w-3.5" /> Edit</button>
                   <button type="button" onClick={() => unlinkRecord(record)} className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 dark:border-rose-900 dark:text-rose-300"><Trash2 className="h-3.5 w-3.5" /> Unlink</button>
                 </div>

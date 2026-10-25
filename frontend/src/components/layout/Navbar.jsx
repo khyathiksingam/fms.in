@@ -6,6 +6,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { VNRVJIET_DARK_EMBLEM } from '../../utils/branding';
+import { getOfficialDepartmentLabel, getOfficialDepartmentOptions } from '../../utils/officialDepartments';
 
 export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobileMenuOpen, currentSearchQuery = '' }) {
   const { user, logout, collegeSettings } = useAuth();
@@ -19,6 +20,9 @@ export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobil
   const collegeLogo = collegeSettings?.college_logo || collegeSettings?.system_logo || '/logo.png';
   const displayedCollegeLogo = isDark ? VNRVJIET_DARK_EMBLEM : collegeLogo;
   const collegeName = collegeSettings?.college_name || 'VNRVJIET';
+  const hodDepartmentOptions = getOfficialDepartmentOptions(user?.assigned_departments || []);
+  const activeDepartmentId = localStorage.getItem('ffms_active_department') || user?.department_id;
+  const activeDepartmentOption = hodDepartmentOptions.find(option => option.memberIds.includes(Number(activeDepartmentId)));
 
   useEffect(() => {
     setSearchQuery(currentSearchQuery || '');
@@ -128,19 +132,19 @@ export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobil
           )}
         </button>
 
-        {user?.role_name === 'hod' && user.assigned_departments?.length > 1 && (
+        {user?.role_name === 'hod' && hodDepartmentOptions.length > 1 && (
           <label className="flex items-center">
             <span className="sr-only">Active department</span>
             <select
-              value={localStorage.getItem('ffms_active_department') || user.department_id}
+              value={activeDepartmentOption?.id || user.department_id}
               onChange={(event) => {
                 localStorage.setItem('ffms_active_department', event.target.value);
                 window.location.reload();
               }}
               className="max-w-28 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-[10px] font-semibold text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:max-w-48 sm:px-2.5 sm:text-xs"
             >
-              {user.assigned_departments.map(department => (
-                <option key={department.id} value={department.id}>{department.name}</option>
+              {hodDepartmentOptions.map(department => (
+                <option key={department.id} value={department.id}>{department.label}</option>
               ))}
             </select>
           </label>
@@ -166,7 +170,7 @@ export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobil
                 {user?.full_name}
               </div>
               <div className="text-[10px] text-slate-400 uppercase font-semibold leading-tight">
-                {user?.department_code || user?.role_name}
+                {user?.department_name || user?.role_name}
               </div>
             </div>
             <ChevronDown className="h-3 w-3 text-slate-400" />
@@ -187,7 +191,7 @@ export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobil
                   </span>
                   {user?.department_code && (
                     <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                      {user?.department_code}
+                      {user?.department_name || getOfficialDepartmentLabel(user?.department_code)}
                     </span>
                   )}
                 </div>

@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Activity, Download, Eye, LoaderCircle, LogIn } from 'lucide-react';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { getOfficialDepartmentLabel, getOfficialDepartmentOptions } from '../utils/officialDepartments';
 
 const EMPTY_FILTERS = {
   student: '',
   roll_number: '',
-  department_id: '',
+  department_ids: '',
   faculty_uploader_id: '',
   resource_type: '',
   subject: '',
@@ -30,14 +31,17 @@ export default function StudentResourceActivityPage() {
   const { isAdmin, isHOD } = useAuth();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [departments, setDepartments] = useState([]);
+  const departmentOptions = getOfficialDepartmentOptions(departments);
   const [data, setData] = useState({ activity: [], pagination: { page: 1, totalPages: 1, total: 0 } });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    if (!isAdmin) api.get('/departments').then(result => setDepartments(result.departments || [])).catch(err => setError(err.message));
-  }, [isAdmin]);
+    api.get('/departments')
+      .then(result => setDepartments((result.departments || []).filter(department => department.active !== 0)))
+      .catch(err => setError(err.message));
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -60,10 +64,17 @@ export default function StudentResourceActivityPage() {
     ['most_accessed_subjects', 'Most accessed subjects', row => `${row.subject_code || '—'} · ${row.access_count}`],
     ['most_accessed_faculty_notes', 'Popular faculty notes', row => `${row.subject_code || '—'} · ${row.access_count}`],
     ['most_active_students', 'Most active students', row => `${row.student_name || 'Student'} · ${row.activity_count}`],
-    ['activity_by_department', 'Activity by department', row => `${row.department_name || '—'} · ${row.activity_count}`],
+    ['activity_by_department', 'Activity by department', row => `${getOfficialDepartmentLabel(row.department_code, row.department_name || '—')} · ${row.activity_count}`],
     ['activity_by_regulation', 'Activity by regulation', row => `${row.regulation || '—'} · ${row.activity_count}`],
     ['activity_by_faculty', 'Activity by faculty uploader', row => `${row.faculty_name || '—'} · ${row.activity_count}`]
   ] : [];
+  const departmentActivity = (data.activity_by_department || []).reduce((groups, row) => {
+    const label = getOfficialDepartmentLabel(row.department_code, row.department_name || '—');
+    const existing = groups.find(group => group.label === label);
+    if (existing) existing.activity_count += Number(row.activity_count) || 0;
+    else groups.push({ label, activity_count: Number(row.activity_count) || 0 });
+    return groups;
+  }, []);
 
   return (
     <div className="space-y-5">
@@ -76,7 +87,7 @@ export default function StudentResourceActivityPage() {
         {summaryCards.map(([key, title, format]) => <section key={key} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <h2 className="text-xs font-bold text-[#16265C] dark:text-white">{title}</h2>
           <ul className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">
-            {(data[key] || []).slice(0, 4).map((row, index) => <li key={`${row.student_id || row.subject_code || row.department_name || row.regulation || row.faculty_name}-${index}`} className="truncate">{format(row)}</li>)}
+            {(key === 'activity_by_department' ? departmentActivity : data[key] || []).slice(0, 4).map((row, index) => <li key={`${row.student_id || row.subject_code || row.label || row.department_name || row.regulation || row.faculty_name}-${index}`} className="truncate">{key === 'activity_by_department' ? `${row.label} · ${row.activity_count}` : format(row)}</li>)}
             {!data[key]?.length && <li className="text-slate-400">No activity yet</li>}
           </ul>
         </section>)}
@@ -85,8 +96,8 @@ export default function StudentResourceActivityPage() {
       <section className="grid gap-2 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4 dark:border-slate-800 dark:bg-slate-900" aria-label="Activity filters">
         {isAdmin && <input aria-label="Student name or ID" value={filters.student} onChange={event => update('student', event.target.value)} placeholder="Student name or ID" className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-xs dark:border-slate-700" />}
         <input aria-label="Roll number" value={filters.roll_number} onChange={event => update('roll_number', event.target.value)} placeholder="Roll number" className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-xs dark:border-slate-700" />
-        <select aria-label="Department" value={filters.department_id} onChange={event => update('department_id', event.target.value)} className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900">
-          <option value="">All departments</option>{departments.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+        <select aria-label="Department" value={filters.department_ids} onChange={event => update('department_ids', event.target.value)} className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900">
+          <option value="">All departments</option>{departmentOptions.map(item => <option key={item.id} value={item.memberIds.join(',')}>{item.label}</option>)}
         </select>
         {isAdmin && <input aria-label="Faculty uploader ID" value={filters.faculty_uploader_id} onChange={event => update('faculty_uploader_id', event.target.value)} placeholder="Faculty uploader ID" className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-xs dark:border-slate-700" />}
         <select aria-label="Resource type" value={filters.resource_type} onChange={event => update('resource_type', event.target.value)} className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900"><option value="">All resource types</option><option value="syllabus">Syllabus</option><option value="faculty_note">Faculty Note</option></select>
@@ -103,7 +114,7 @@ export default function StudentResourceActivityPage() {
           : data.activity?.length ? <table className="w-full min-w-[900px] text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300"><tr>{['Student', 'Roll Number', 'Department', 'Resource Type', 'Subject', 'Regulation', 'Action', 'Date and Time'].map(title => <th key={title} className="px-3 py-3 font-bold">{title}</th>)}</tr></thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">{data.activity.map(row => <tr key={row.id} className="text-slate-700 dark:text-slate-200">
-              <td className="px-3 py-3">{row.student_name || 'Student'}</td><td className="px-3 py-3">{row.roll_number || '—'}</td><td className="px-3 py-3">{row.department_name || '—'}</td><td className="px-3 py-3">{row.resource_type === 'faculty_note' ? 'Faculty Note' : row.resource_type === 'syllabus' ? 'Syllabus' : '—'}</td><td className="px-3 py-3">{row.subject_code ? `${row.subject_code} · ${row.subject_name || ''}` : '—'}</td><td className="px-3 py-3">{row.regulation || '—'}</td><td className="px-3 py-3"><span className="inline-flex items-center gap-1">{row.action === 'student_resource_downloaded' ? <Download className="h-3 w-3" /> : row.action === 'student_login' ? <LogIn className="h-3 w-3" /> : <Eye className="h-3 w-3" />}{ACTION_LABELS[row.action] || row.action}</span></td><td className="px-3 py-3">{row.created_at}</td>
+              <td className="px-3 py-3">{row.student_name || 'Student'}</td><td className="px-3 py-3">{row.roll_number || '—'}</td><td className="px-3 py-3">{getOfficialDepartmentLabel(row.department_code, row.department_name || '—')}</td><td className="px-3 py-3">{row.resource_type === 'faculty_note' ? 'Faculty Note' : row.resource_type === 'syllabus' ? 'Syllabus' : '—'}</td><td className="px-3 py-3">{row.subject_code ? `${row.subject_code} · ${row.subject_name || ''}` : '—'}</td><td className="px-3 py-3">{row.regulation || '—'}</td><td className="px-3 py-3"><span className="inline-flex items-center gap-1">{row.action === 'student_resource_downloaded' ? <Download className="h-3 w-3" /> : row.action === 'student_login' ? <LogIn className="h-3 w-3" /> : <Eye className="h-3 w-3" />}{ACTION_LABELS[row.action] || row.action}</span></td><td className="px-3 py-3">{row.created_at}</td>
             </tr>)}</tbody>
           </table> : <div className="p-10 text-center text-sm text-slate-500">No student resource activity matches these filters.</div>}
       </section>

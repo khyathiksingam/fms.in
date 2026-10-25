@@ -18,11 +18,11 @@ const EMPTY_FILTERS = {
   subject_id: ''
 };
 
-function groupByRegulationAndYear(records) {
+function groupByRegulation(records) {
   const groups = new Map();
   records.forEach(record => {
-    const key = `${record.regulation}\u0000${record.academic_year}`;
-    if (!groups.has(key)) groups.set(key, { regulation: record.regulation, year: record.academic_year, branches: new Map() });
+    const key = record.regulation;
+    if (!groups.has(key)) groups.set(key, { regulation: record.regulation, branches: new Map() });
     const group = groups.get(key);
     const branchKey = `${record.branch_code}\u0000${record.department_name || ''}`;
     if (!group.branches.has(branchKey)) {
@@ -61,7 +61,10 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
   const [catalogueRevision, setCatalogueRevision] = useState(0);
   const resultsRef = useRef(null);
   const handledResourceRef = useRef('');
-  const closePreview = useCallback(() => setPreview(null), []);
+  const closePreview = useCallback(() => {
+    setPreview(null);
+    handledResourceRef.current = '';
+  }, []);
   const selectedRegulation = masterData?.regulations?.find(item => item.code === selected.regulation);
 
   useEffect(() => {
@@ -158,7 +161,7 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
     }
   }, [studentSession, selected, resourceTab]);
 
-  const groups = useMemo(() => groupByRegulationAndYear(records), [records]);
+  const groups = useMemo(() => groupByRegulation(records), [records]);
   const handleFilterChange = (key, value) => {
     const resetAfter = {
       program: ['regulation', 'department_id', 'department_ids', 'semester', 'subject_id'],
@@ -240,6 +243,10 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
       } else {
         setError(err.message);
       }
+    }).finally(() => {
+      if (handledResourceRef.current === String(record.id)) {
+        handledResourceRef.current = '';
+      }
     });
   };
 
@@ -249,6 +256,7 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
       return;
     }
     setDownloadError('');
+    handledResourceRef.current = '';
     setPreview(record);
   };
 
@@ -272,7 +280,10 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
     if (!record) return;
     handledResourceRef.current = resourceId;
     if (action === 'download') downloadRecord(record);
-    else requestResource(record);
+    else {
+      setDownloadError('');
+      setPreview(record);
+    }
     window.history.replaceState({}, '', '/student-syllabus');
   }, [studentView, studentSession, records]);
 
@@ -329,6 +340,20 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
       </header>
 
       <main className={`mx-auto max-w-7xl px-4 sm:px-6 ${studentView ? 'space-y-5 py-5 sm:py-7' : 'space-y-8 py-7 sm:py-10'}`}>
+        {studentView && masterData?.portalStats && (
+          <section className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="College overview">
+            {[
+              ['Total Faculty', masterData.portalStats.totalFaculty],
+              ['Departments', masterData.portalStats.totalDepartments],
+              ['College Files', masterData.portalStats.totalFiles]
+            ].map(([label, value]) => (
+              <article key={label} className="rounded-2xl border border-[#dbe2f0] bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
+                <p className="mt-2 text-2xl font-black text-[#16265C] dark:text-white">{value ?? 0}</p>
+              </article>
+            ))}
+          </section>
+        )}
         {!studentView && <section className="syllabus-hero relative overflow-hidden rounded-[30px] px-5 py-10 text-white sm:px-10 sm:py-14">
           <div className="syllabus-hero-plane" aria-hidden="true" />
           <div className="syllabus-hero-grid" aria-hidden="true" />
@@ -433,23 +458,28 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
           </div>
           <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Academic resource type">
             {[
-              ['all', 'All Academic Resources'],
-              ['syllabus', 'Syllabus Books'],
-              ['notes', 'Faculty Notes']
-            ].map(([tab, label]) => (
-              <button key={tab} type="button" role="tab" aria-selected={resourceTab === tab} onClick={() => { setResourceTab(tab); setPage(1); setLoading(true); }} className={`rounded-full border px-4 py-2 text-xs font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2846C7] ${resourceTab === tab ? 'border-[#16265C] bg-[#16265C] text-white' : 'border-slate-300 bg-white text-[#16265C] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'}`}>{label}</button>
+              ['all', 'All Academic Resources', catalogFilters?.subjects?.length || 0],
+              ['syllabus', 'Syllabus Books', catalogFilters?.subjects?.filter(item => item.resource_type === 'syllabus').length || 0],
+              ['notes', 'Faculty Notes', catalogFilters?.subjects?.filter(item => item.resource_type === 'faculty_note').length || 0]
+            ].map(([tab, label, count]) => (
+              <button key={tab} type="button" role="tab" aria-selected={resourceTab === tab} onClick={() => { setResourceTab(tab); setPage(1); setLoading(true); }} className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2846C7] ${resourceTab === tab ? 'border-[#16265C] bg-[#16265C] text-white' : 'border-slate-300 bg-white text-[#16265C] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'}`}>
+                {label}<span className={`rounded-full px-2 py-0.5 text-[10px] ${resourceTab === tab ? 'bg-white/15' : 'bg-slate-100 dark:bg-slate-800'}`}>{count}</span>
+              </button>
             ))}
           </div>
+          <p className="mb-4 rounded-xl border border-blue-100 bg-blue-50/80 px-4 py-3 text-sm leading-6 text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100">
+            <strong>Syllabus Books</strong> are official course curriculum PDFs. <strong>Faculty Notes</strong> are supporting class materials shared by faculty. Sign in with your verified student account to preview or download. If a file is missing, ask your faculty member to publish it to this library.
+          </p>
           {error && <div role="alert" className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200">{error}</div>}
           {loading ? (
             <div className="syllabus-state flex min-h-48 items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"><LoaderCircle className="h-5 w-5 animate-spin text-[#2846C7]" /> Loading published syllabi…</div>
           ) : records.length ? (
             <div className="space-y-3">
               {groups.map((group, index) => (
-                <details key={`${group.regulation}-${group.year}`} open={index === 0 || group.branches.some(branch => String(branch.departmentId) === String(selected.department_id))} className="syllabus-result-group group rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:p-4">
+                <details key={group.regulation} open={index === 0 || group.branches.some(branch => String(branch.departmentId) === String(selected.department_id))} className="syllabus-result-group group rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:p-4">
                   <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                     <span className="flex items-center justify-between gap-3">
-                      <span><span className="block font-bold text-[#16265C] dark:text-white">{group.regulation} · Academic Year {group.year}</span><span className="text-xs text-slate-600 dark:text-slate-300">{group.branches.reduce((total, branch) => total + branch.records.length, 0)} subjects · {group.branches.length} branches</span></span>
+                      <span><span className="block font-bold text-[#16265C] dark:text-white">{group.regulation}</span><span className="text-xs text-slate-600 dark:text-slate-300">{group.branches.reduce((total, branch) => total + branch.records.length, 0)} subjects · {group.branches.length} branches</span></span>
                       <span className="syllabus-expand-pill rounded-full px-3 py-1 text-xs font-semibold">Expand</span>
                     </span>
                   </summary>
@@ -482,7 +512,7 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
             <div className="syllabus-empty rounded-3xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center dark:border-slate-700 dark:bg-slate-900">
               <BookOpen className="mx-auto h-9 w-9 text-slate-400" />
               <h3 className="mt-3 font-bold">No published resources found</h3>
-              <p className="mx-auto mt-1 max-w-lg text-sm text-slate-500 dark:text-slate-400">{selectedDepartment || Object.values(selected).some(Boolean) ? 'No published resources are available for this selection yet.' : search ? 'Try another search or clear some filters.' : 'Published course resources will appear here when they are added to the library.'}</p>
+              <p className="mx-auto mt-1 max-w-lg text-sm text-slate-500 dark:text-slate-400">{selectedDepartment || Object.values(selected).some(Boolean) ? 'No published resources are available for this selection yet. Try another regulation or semester, or ask faculty to publish the PDF.' : search ? 'Try another search or clear some filters.' : 'Published syllabus books and faculty notes will appear here after faculty or an administrator adds and publishes them.'}</p>
               {(search || Object.values(selected).some(Boolean)) && <button type="button" onClick={() => { setSelected(EMPTY_FILTERS); setSelectedDepartment(''); setSearch(''); setPage(1); setLoading(true); }} className="syllabus-portal-button mt-4">Clear search and filters</button>}
             </div>
           )}

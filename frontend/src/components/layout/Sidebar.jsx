@@ -18,7 +18,7 @@ export default function Sidebar({
   mobileOpen = false, 
   onCloseMobile 
 }) {
-  const { isAdmin, isHOD, collegeSettings } = useAuth();
+  const { isAdmin, isHOD, isStaff, collegeSettings } = useAuth();
   const { isDark } = useTheme();
   const collegeLogo = collegeSettings?.college_logo || collegeSettings?.system_logo || '/logo.png';
   const displayedCollegeLogo = isDark ? VNRVJIET_DARK_EMBLEM : collegeLogo;
@@ -58,6 +58,18 @@ export default function Sidebar({
         { label: 'Storage Usage', path: '/storage', icon: HardDrive },
         { label: 'Recycle Bin', path: '/trash', icon: Trash2 },
       ];
+    } else if (isStaff) {
+      return [
+        { section: 'Staff Workspace' },
+        { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+        { label: 'My Files', path: '/files', icon: Files },
+        { label: 'Folder Directory', path: '/folders', icon: Folder },
+        { label: 'Starred Documents', path: '/favorites', icon: Star },
+        { label: 'Recent Uploads', path: '/recent', icon: Clock },
+        { section: 'Collaboration' },
+        { label: 'Shared With Me', path: '/shared', icon: Share2 },
+        { label: 'Recycle Bin', path: '/trash', icon: Trash2 },
+      ];
     } else {
       // Faculty
       return [
@@ -66,7 +78,6 @@ export default function Sidebar({
         { label: 'My Academic Files', path: '/files', icon: Files },
         { label: 'Submit Syllabus', path: '/syllabus-management', icon: Layers },
         { label: 'My Student Resource Activity', path: '/student-resource-activity', icon: Activity },
-        { label: 'Activity Stream', path: '/activity', icon: Activity },
         { label: 'Folder Directory', path: '/folders', icon: Folder },
         { label: 'Starred Documents', path: '/favorites', icon: Star },
         { label: 'Recent Uploads', path: '/recent', icon: Clock },

@@ -86,46 +86,19 @@ The frontend calls these API routes:
 
 `/syllabus/departments` is a frontend page route, not an API route.
 
-### Deploy the existing Express backend with persistent storage
+### Deploy a free temporary demo
 
-The root `render.yaml` deploys this existing Express server to Render with a
-persistent disk mounted at `/var/data`. It stores the SQLite database there and
-configures separate persistent upload and logo directories. It is a single
-backend instance; do not scale it horizontally while using the local SQLite
-database.
+The root `render.yaml` deploys the Express API on Render's free plan for a prototype. Free Render services have ephemeral storage: the SQLite database and uploaded files may be lost on restarts, spin-downs, or redeploys. Do not use this configuration for production data.
 
-1. In Render, create a Blueprint from this repository using `render.yaml`.
-2. Obtain the actual public service origin assigned by Render. This project
-   does not assume or prescribe a backend hostname.
-3. Configure backend service variables:
-   - `JWT_SECRET`: generate a strong secret; the supplied Render Blueprint
-     generates one.
-   - `CORS_ORIGINS`: exact Vercel frontend origin(s), comma-separated if more
-     than one. Origins do not include a path such as `/api`.
-   - `FFMS_DATA_DIR=/var/data`, `FFMS_STORAGE_DIR=/var/data/uploads`, and
-     `FFMS_LOGO_DIR=/var/data/logos` for the persistent disk in the Blueprint.
-   - `ADMIN_PASSWORD` is required only to initialize an administrator on a
-     new database. Set `FFMS_HOD_TEMP_PASSWORD` if provisioning HOD accounts.
-     Configure `BREVO_API_KEY`, `EMAIL_FROM`, and `EMAIL_FROM_NAME` if student
-     email verification is required.
-4. In Vercel, set the Production environment variable
-   `VITE_API_BASE_URL` to the actual backend origin returned by Render, with or
-   without a trailing `/api`; the client normalizes it. This is a build-time
-   variable, so redeploy after changing it. Ensure Vercel Deployment
-   Protection does not block the public production frontend/API requests.
-5. Before serving existing resources, migrate the existing SQLite database
-   and matching uploaded files to the persistent disk using a trusted,
-   authorized transfer. A new Render disk starts empty; this deployment
-   configuration does not copy local data or fabricate catalogue resources.
-6. Check `<actual-backend-origin>/api/health`, then verify the public syllabus
-   endpoints and authenticated student login/preview/download from the Vercel
-   origin.
+1. Create the backend service from the `codex/resourcehub-prototype-demo` branch. It uses `npm ci`, `npm start`, and `/api/health`.
+2. Set `ADMIN_PASSWORD` before the first start so a fresh database can create the administrator. Set `FFMS_HOD_TEMP_PASSWORD` to seed HOD accounts.
+3. This prototype branch sets `FFMS_DISABLE_STUDENT_EMAIL_VERIFICATION=true` so student registration and login do not depend on Brevo. Remove this setting and keep the code's production default for a real deployment.
+4. Add the exact Vercel origin to `CORS_ORIGINS` after the frontend is deployed.
+5. Set Vercel's `VITE_API_BASE_URL` to the actual Render service origin, then redeploy the frontend. Do not guess the service hostname.
+6. Check `<actual-backend-origin>/api/health` and test the frontend against that API.
 
-Use the names in `frontend/.env.example` when building outside Vercel. The
-backend environment variables for persistent locations are `FFMS_DATA_DIR`,
-`FFMS_STORAGE_DIR`, and `FFMS_LOGO_DIR`.
-
-### Student email verification
+The existing Vercel rewrite configuration is retained. Local databases, uploaded files, and runtime logo files are excluded from the deployment branch.
+### Student email verification in production
 
 Student self-registration uses a 6-digit email OTP delivered only through
 Brevo. Configure `backend/.env` locally or the corresponding backend service

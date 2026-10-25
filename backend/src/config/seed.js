@@ -16,6 +16,7 @@ async function seed() {
   // 1. Seed Roles
   await dbHelper.run("INSERT OR IGNORE INTO roles (id, name) VALUES (1, 'admin'), (2, 'hod'), (3, 'faculty')");
   await dbHelper.run("INSERT OR IGNORE INTO roles (name) VALUES ('student')");
+  await dbHelper.run("INSERT OR IGNORE INTO roles (name) VALUES ('staff')");
 
   // 2. Seed System Settings (100 GB Cloud Quota)
   const existingSettings = await dbHelper.get("SELECT COUNT(*) as count FROM system_settings");
@@ -25,10 +26,10 @@ async function seed() {
         college_name, system_name, college_logo, system_logo, max_upload_size_mb, allowed_file_types
       ) VALUES (
         'Vallurupalli Nageswara Rao Vignana Jyothi Institute of Engineering & Technology',
-        'Faculty File Management System',
-        '/brand/vnrvjiet-full-logo.png',
-        '/brand/vnrvjiet-mark.png',
-        1024,
+        'Faculty File Management System', 
+        '/brand/vnrvjiet-full-logo.png', 
+        '/brand/vnrvjiet-mark.png', 
+        1024, 
         'pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,jpg,jpeg,png,gif,svg,mp4,mov,avi,mp3,wav,zip,rar'
       )
     `);

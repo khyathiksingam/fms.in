@@ -7,10 +7,12 @@ import {
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { formatBytes, formatDate } from '../utils/formatters';
+import { getOfficialDepartmentId, getOfficialDepartmentLabel, getOfficialDepartmentOptions } from '../utils/officialDepartments';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
 export default function UsersPage() {
-  const { user: currentUser, isAdmin } = useAuth();
+  const { user: currentUser, isAdmin, isHOD } = useAuth();
+  const canCreateUser = isAdmin || isHOD;
   const [activeTab, setActiveTab] = useState('faculty'); // 'faculty' or 'students'
   const [studentToView, setStudentToView] = useState(null);
   const [users, setUsers] = useState([]);
@@ -21,6 +23,16 @@ export default function UsersPage() {
     { id: 4, name: 'student', label: 'Student' }
   ]);
   const [departments, setDepartments] = useState([]);
+  const officialDepartmentOptions = getOfficialDepartmentOptions(departments);
+  const assignableDepartmentOptions = isHOD
+    ? getOfficialDepartmentOptions(currentUser?.assigned_departments || [])
+    : officialDepartmentOptions;
+  const assignableRoleOptions = isHOD
+    ? [
+        ...roles.filter(role => ['faculty', 'staff'].includes(role.name)),
+        ...(!roles.some(role => role.name === 'staff') ? [{ id: 'staff', name: 'staff', label: 'Staff Member' }] : [])
+      ]
+    : roles;
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -84,7 +96,7 @@ export default function UsersPage() {
       if (rData && rData.roles && rData.roles.length > 0) {
         setRoles(rData.roles.map(r => ({
           ...r,
-          label: r.name === 'admin' ? 'Administrator' : r.name === 'hod' ? 'Head of Department (HOD)' : r.name === 'student' ? 'Student' : 'Faculty Member'
+          label: r.name === 'admin' ? 'Administrator' : r.name === 'hod' ? 'Head of Department (HOD)' : r.name === 'student' ? 'Student' : r.name === 'staff' ? 'Staff Member' : 'Faculty Member'
         })));
       }
       setDepartments(dData.departments || []);
@@ -100,8 +112,8 @@ export default function UsersPage() {
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
-    if (!isAdmin) {
-      setFormError('Only Administrator can create accounts.');
+    if (!canCreateUser) {
+      setFormError('You do not have permission to create accounts.');
       return;
     }
 
@@ -114,9 +126,10 @@ export default function UsersPage() {
         username: username.trim(),
         email: email.trim(),
         password: password,
-        role_id: Number(selectedRoleId),
+        role_id: selectedRoleId === 'staff' ? undefined : Number(selectedRoleId),
+        ...(selectedRoleId === 'staff' ? { role_name: 'staff' } : {}),
         department_id: selectedDeptId ? Number(selectedDeptId) : null,
-        status: accountStatus,
+        status: isHOD ? 'active' : accountStatus,
         ...(roles.find(role => role.id === Number(selectedRoleId))?.name === 'student' ? {
           roll_number: studentRollNumber.trim(),
           programme: studentProgramme.trim(),
@@ -227,7 +240,7 @@ export default function UsersPage() {
     setUsername(u.username || '');
     setEmail(u.email || '');
     setSelectedRoleId(u.role_id || 3);
-    setSelectedDeptId(u.department_id || '');
+    setSelectedDeptId(getOfficialDepartmentId(u.department_id, departments));
     setStudentRollNumber(u.roll_number || '');
     setStudentProgramme(u.programme || '');
     setStudentAcademicYear(u.academic_year || '');
@@ -266,13 +279,20 @@ export default function UsersPage() {
           </p>
         </div>
 
-        {isAdmin && (
+        {canCreateUser && (
           <button
-            onClick={() => { resetForm(); setShowAddUserModal(true); }}
+            onClick={() => {
+              resetForm();
+              if (isHOD) {
+                setSelectedRoleId(3);
+                setSelectedDeptId(String(getOfficialDepartmentId(currentUser?.department_id, currentUser?.assigned_departments)));
+              }
+              setShowAddUserModal(true);
+            }}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/20 hover:from-blue-800 hover:to-indigo-700 transition active:scale-95 cursor-pointer"
           >
             <UserPlus className="h-4 w-4 stroke-[2.5]" />
-            <span>Add Account</span>
+            <span>{isHOD ? 'Add Faculty / Staff' : 'Add Account'}</span>
           </button>
         )}
       </div>
@@ -337,6 +357,7 @@ export default function UsersPage() {
             <option value="admin">Administrator</option>
             <option value="hod">Head of Department (HOD)</option>
             <option value="faculty">Faculty Member</option>
+            <option value="staff">Staff Member</option>
           </select>
         )}
 
@@ -527,7 +548,7 @@ export default function UsersPage() {
 
                   <td className="px-3 py-3">
                     <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                      {u.department_code || u.department_name || '—'}
+                      {getOfficialDepartmentLabel(u.department_code, u.department_name || '—')}
                     </span>
                   </td>
 
@@ -656,7 +677,7 @@ export default function UsersPage() {
                 <div className="rounded-xl border border-slate-150 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-850">
                   <span className="text-[11px] font-semibold text-slate-400 block">Department / Branch</span>
                   <span className="font-medium text-slate-800 dark:text-slate-200 mt-0.5 block">
-                    {studentToView.department_code || studentToView.department_name || 'VNRVJIET'}
+                    {getOfficialDepartmentLabel(studentToView.department_code, studentToView.department_name || 'VNRVJIET')}
                   </span>
                 </div>
                 <div className="rounded-xl border border-slate-150 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-850">
@@ -762,7 +783,7 @@ export default function UsersPage() {
                     {userToEdit ? (isAdmin ? 'Edit User Account' : 'User Account Details') : 'Create New Account'}
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    {isAdmin ? 'Admin can configure user details, department, and role permissions.' : 'Read-only user profile.'}
+                    {isAdmin ? 'Admin can configure user details, department, and role permissions.' : isHOD ? 'Create faculty/staff accounts for departments assigned to you.' : 'Read-only user profile.'}
                   </p>
                 </div>
               </div>
@@ -787,7 +808,7 @@ export default function UsersPage() {
                   <input
                     type="text"
                     required
-                    disabled={!isAdmin}
+                    disabled={!canCreateUser || (Boolean(userToEdit) && !isAdmin)}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Dr. Ravi Kumar"
@@ -799,7 +820,7 @@ export default function UsersPage() {
                   <input
                     type="text"
                     required
-                    disabled={!isAdmin}
+                    disabled={!canCreateUser || (Boolean(userToEdit) && !isAdmin)}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="e.g. dr.ravi"
@@ -814,7 +835,7 @@ export default function UsersPage() {
                   <input
                     type="email"
                     required
-                    disabled={!isAdmin}
+                    disabled={!canCreateUser || (Boolean(userToEdit) && !isAdmin)}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="ravi.kumar@abc.edu"
@@ -837,35 +858,38 @@ export default function UsersPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                {(isAdmin || isHOD) ? <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    System Role {isAdmin ? '(Admin Only: Change Role)' : '(Assigned Role)'}
+                    System Role {isHOD ? '(Choose account type)' : '(Admin Only: Change Role)'}
                   </label>
                   <select
                     value={selectedRoleId}
-                    disabled={!isAdmin}
-                    onChange={(e) => setSelectedRoleId(Number(e.target.value))}
+                    disabled={Boolean(userToEdit) && !isAdmin}
+                    onChange={(e) => setSelectedRoleId(e.target.value === 'staff' ? 'staff' : Number(e.target.value))}
                     className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 disabled:opacity-60"
                   >
-                    {roles.map(r => (
+                    {assignableRoleOptions.filter(role => isAdmin || ['faculty', 'staff'].includes(role.name)).map(r => (
                       <option key={r.id} value={r.id}>
                         {r.label || r.name.toUpperCase()}
                       </option>
                     ))}
                   </select>
-                </div>
+                </div> : <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">System Role</label>
+                  <div className="mt-1 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Assigned Role</div>
+                </div>}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Assigned Department</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">{isHOD ? 'Assigned Department Group' : 'Assigned Department'}</label>
                   <select
                     value={selectedDeptId}
-                    disabled={!isAdmin}
+                    disabled={!isAdmin && (!isHOD || Boolean(userToEdit))}
                     onChange={(e) => setSelectedDeptId(e.target.value)}
-                    required={roles.find(role => role.id === Number(selectedRoleId))?.name === 'student'}
+                    required={isHOD || roles.find(role => role.id === Number(selectedRoleId))?.name === 'student'}
                     className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 disabled:opacity-60"
                   >
-                    <option value="">No Department (Admin)</option>
-                    {departments.map(d => (
-                      <option key={d.id} value={d.id}>{d.code} - {d.name}</option>
+                    {isAdmin && <option value="">No Department (Admin)</option>}
+                    {assignableDepartmentOptions.map(department => (
+                      <option key={department.id} value={department.id}>{department.label}</option>
                     ))}
                   </select>
                 </div>
@@ -881,7 +905,7 @@ export default function UsersPage() {
                 )}
               </div>
 
-              <div>
+              {isAdmin && <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Account Status</label>
                 <select
                   value={accountStatus}
@@ -892,7 +916,7 @@ export default function UsersPage() {
                   <option value="active">Active (Can Log In)</option>
                   <option value="disabled">Disabled (Access Blocked)</option>
                 </select>
-              </div>
+              </div>}
 
               <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
                 <button
@@ -902,14 +926,14 @@ export default function UsersPage() {
                 >
                   Cancel
                 </button>
-                {isAdmin ? (
+                {isAdmin || (isHOD && !userToEdit) ? (
                   <button
                     type="submit"
                     disabled={formLoading}
                     className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-brand-500/25 hover:from-brand-700 hover:to-indigo-700 disabled:opacity-50"
                   >
                     <Save className="h-3.5 w-3.5" />
-                    {formLoading ? 'Saving...' : userToEdit ? 'Save Changes' : 'Create Account'}
+                    {formLoading ? 'Saving...' : userToEdit ? 'Save Changes' : isHOD ? 'Create Faculty / Staff' : 'Create Account'}
                   </button>
                 ) : (
                   <span className="text-xs text-slate-400 italic">Only Administrator can save user edits</span>

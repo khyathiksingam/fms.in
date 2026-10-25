@@ -2,14 +2,10 @@ services:
   - type: web
     name: ffms-api
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /api/health
-    disk:
-      name: ffms-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: 22.12.0
@@ -23,12 +19,8 @@ services:
         sync: false
       - key: CORS_ORIGINS
         value: https://fmsin.vercel.app,https://fms-nchjwtdup-khyathik.vercel.app
-      - key: FFMS_DATA_DIR
-        value: /var/data
-      - key: FFMS_STORAGE_DIR
-        value: /var/data/uploads
-      - key: FFMS_LOGO_DIR
-        value: /var/data/logos
+      - key: FFMS_DISABLE_STUDENT_EMAIL_VERIFICATION
+        value: true
       - key: BREVO_API_KEY
         sync: false
       - key: EMAIL_FROM

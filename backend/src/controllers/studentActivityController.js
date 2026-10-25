@@ -20,7 +20,6 @@ function buildFilters(query, params) {
   const fields = [
     ['student_id', 'a.user_id'],
     ['roll_number', 'a.roll_number'],
-    ['department_id', 'a.department_id'],
     ['faculty_uploader_id', 'a.faculty_uploader_id'],
     ['resource_type', 'a.resource_type'],
     ['regulation', 'a.regulation'],
@@ -32,6 +31,14 @@ function buildFilters(query, params) {
       where += ` AND ${column} = ?`;
       params.push(value);
     }
+  }
+  if (query.department_ids) {
+    const departmentIds = String(query.department_ids).split(',').map(Number);
+    where += ` AND a.department_id IN (${departmentIds.map(() => '?').join(', ')})`;
+    params.push(...departmentIds);
+  } else if (query.department_id !== undefined && query.department_id !== '') {
+    where += ' AND a.department_id = ?';
+    params.push(query.department_id);
   }
   if (query.subject) {
     where += ' AND (LOWER(a.subject_code) LIKE ? OR LOWER(a.subject_name) LIKE ?)';
@@ -84,8 +91,9 @@ const studentActivityController = {
         where += ' AND a.faculty_uploader_id = ?';
         params.push(req.user.id);
       } else if (req.user.role_name === 'hod') {
-        where += ' AND a.department_id = ?';
-        params.push(req.user.department_id || -1);
+        const allowedDepartmentIds = req.user.department_ids?.length ? req.user.department_ids : [req.user.department_id || -1];
+        where += ` AND a.department_id IN (${allowedDepartmentIds.map(() => '?').join(', ')})`;
+        params.push(...allowedDepartmentIds);
       } else if (req.user.role_name !== 'admin') {
         return res.status(403).json({ error: 'Access denied.' });
       }
@@ -93,7 +101,7 @@ const studentActivityController = {
         SELECT a.id, a.roll_number, a.file_id, a.catalogue_id, a.faculty_uploader_id,
                a.department_id, a.subject_code, a.subject_name, a.regulation,
                a.resource_type, a.action, a.created_at,
-               s.full_name AS student_name, d.name AS department_name
+               s.full_name AS student_name, d.name AS department_name, d.code AS department_code
         FROM student_resource_activity a
         LEFT JOIN users s ON s.id = a.user_id
         LEFT JOIN departments d ON d.id = a.department_id
@@ -123,7 +131,8 @@ const studentActivityController = {
                a.catalogue_id, a.faculty_uploader_id, a.department_id,
                a.subject_code, a.subject_name, a.regulation, a.resource_type,
                a.action, a.created_at, s.full_name AS student_name,
-               d.name AS department_name, f.full_name AS faculty_uploader_name
+               d.name AS department_name, d.code AS department_code,
+               f.full_name AS faculty_uploader_name
         FROM student_resource_activity a
         LEFT JOIN users s ON s.id = a.user_id
         LEFT JOIN departments d ON d.id = a.department_id
@@ -161,7 +170,7 @@ const studentActivityController = {
           GROUP BY a.user_id ORDER BY activity_count DESC LIMIT 10
         `),
         dbHelper.all(`
-          SELECT d.name AS department_name, COUNT(*) AS activity_count
+          SELECT d.name AS department_name, d.code AS department_code, COUNT(*) AS activity_count
           FROM student_resource_activity a LEFT JOIN departments d ON d.id = a.department_id
           WHERE a.department_id IS NOT NULL GROUP BY a.department_id ORDER BY activity_count DESC
         `),
@@ -206,6 +215,11 @@ function validateFilters(query, res) {
       res.status(400).json({ error: 'Activity identifiers must be positive integers.' });
       return false;
     }
+  }
+  if (query.department_ids !== undefined && query.department_ids !== '' &&
+      (typeof query.department_ids !== 'string' || !/^\d+(,\d+)*$/.test(query.department_ids))) {
+    res.status(400).json({ error: 'Department filter must contain valid department identifiers.' });
+    return false;
   }
   if (query.resource_type && !['syllabus', 'faculty_note'].includes(query.resource_type)) {
     res.status(400).json({ error: 'Resource type filter is invalid.' });

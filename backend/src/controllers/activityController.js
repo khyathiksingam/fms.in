@@ -22,12 +22,13 @@ const activityController = {
                s.last_seen_at AS session_last_seen_at, s.ended_at AS session_logout_at,
                s.expired_at AS session_expired_at, s.end_reason AS session_end_reason,
                s.duration_seconds AS session_duration_seconds,
-               u.full_name as user_name, u.username, u.email as user_email,
+               u.full_name as user_name, u.username, u.email as user_email, r.name AS user_role,
                d.name as department_name, d.code as department_code,
                f.name as file_name,
                fold.name as folder_name
         FROM activity_logs a
         LEFT JOIN users u ON a.user_id = u.id
+        LEFT JOIN roles r ON u.role_id = r.id
         LEFT JOIN departments d ON a.department_id = d.id
         LEFT JOIN files f ON a.file_id = f.id
         LEFT JOIN folders fold ON a.folder_id = fold.id
@@ -37,7 +38,7 @@ const activityController = {
       const params = [];
 
       // RBAC
-      if (user.role_name === 'faculty') {
+      if (['faculty', 'staff'].includes(user.role_name)) {
         sql += " AND a.user_id = ?";
         params.push(user.id);
       } else if (user.role_name === 'hod') {
@@ -47,8 +48,15 @@ const activityController = {
       }
 
       if (action) {
-        sql += " AND a.action = ?";
-        params.push(action);
+        if (['HOD Login', 'HOD Logout', 'Admin Login', 'Admin Logout', 'Staff Login', 'Staff Logout'].includes(action)) {
+          const role = action.startsWith('HOD ') ? 'hod' : action.startsWith('Admin ') ? 'admin' : 'staff';
+          const legacyAction = `Faculty ${action.slice(action.indexOf(' ') + 1)}`;
+          sql += " AND (a.action = ? OR (a.action = ? AND r.name = ?))";
+          params.push(action, legacyAction, role);
+        } else {
+          sql += " AND a.action = ?";
+          params.push(action);
+        }
       }
 
       if (user_id) {
@@ -94,9 +102,23 @@ const activityController = {
 
       // Parse metadata json
       const formattedLogs = logs.map(l => {
-        const meta = typeof l.metadata === 'string' ? JSON.parse(l.metadata || '{}') : (l.metadata || {});
+        let meta = l.metadata || {};
+        if (typeof meta === 'string') {
+          try {
+            meta = JSON.parse(meta || '{}');
+          } catch {
+            meta = { details: meta };
+          }
+        }
+        if (!meta || typeof meta !== 'object' || Array.isArray(meta)) meta = { details: meta };
+        const action = l.action === 'Faculty Login' || l.action === 'Faculty Logout'
+          ? (l.user_role === 'hod' ? `HOD ${l.action.slice('Faculty '.length)}`
+            : l.user_role === 'admin' ? `Admin ${l.action.slice('Faculty '.length)}`
+              : l.user_role === 'staff' ? `Staff ${l.action.slice('Faculty '.length)}` : l.action)
+          : l.action;
         return {
           ...l,
+          action,
           metadata: meta
         };
       });

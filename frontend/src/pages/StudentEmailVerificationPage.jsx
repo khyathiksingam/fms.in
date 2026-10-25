@@ -28,6 +28,7 @@ export default function StudentEmailVerificationPage() {
   const [password, setPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [now, setNow] = useState(0);
+  const [verificationDisabled, setVerificationDisabled] = useState(false);
 
   const navigate = (path) => {
     window.history.pushState({}, '', path);
@@ -42,6 +43,12 @@ export default function StudentEmailVerificationPage() {
       window.clearTimeout(initialUpdate);
       window.clearInterval(timer);
     };
+  }, []);
+
+  useEffect(() => {
+    api.publicGet('/settings/public')
+      .then(result => setVerificationDisabled(result?.settings?.student_email_verification_required === false))
+      .catch(() => {});
   }, []);
 
   const expiresIn = expiresAt && now ? Date.parse(expiresAt) - now : null;
@@ -144,6 +151,19 @@ export default function StudentEmailVerificationPage() {
             <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600 dark:text-emerald-400" />
             <h2 className="mt-3 text-lg font-bold text-emerald-950 dark:text-emerald-100">Email Verified Successfully!</h2>
             <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-200">{message}</p>
+            <button
+              type="button"
+              onClick={() => navigate('/student-login')}
+              className="mt-6 w-full rounded-xl bg-[#16265C] px-4 py-3 font-bold text-white hover:bg-[#2846C7] cursor-pointer"
+            >
+              Go to Student Login
+            </button>
+          </div>
+        ) : verificationDisabled ? (
+          <div role="status" className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/40">
+            <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600 dark:text-emerald-400" />
+            <h2 className="mt-3 text-lg font-bold text-emerald-950 dark:text-emerald-100">Email verification is paused</h2>
+            <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-200">Verification is disabled for the local prototype. You can sign in with your student account.</p>
             <button
               type="button"
               onClick={() => navigate('/student-login')}

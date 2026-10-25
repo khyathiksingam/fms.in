@@ -7,6 +7,7 @@ import { VNRVJIET_DARK_EMBLEM } from '../utils/branding';
 export default function StudentLoginPage() {
   const { isDark } = useTheme();
   const params = new URLSearchParams(window.location.search);
+  const justRegistered = params.get('registered') === '1';
   const resourceId = params.get('resourceId') || '';
   const action = params.get('action') === 'download' ? 'download' : 'preview';
   const [username, setUsername] = useState('');
@@ -112,6 +113,12 @@ export default function StudentLoginPage() {
           <p className="mt-5 rounded-xl bg-blue-50 p-3 text-sm text-blue-900 dark:bg-blue-950/50 dark:text-blue-100">
             Sign in to continue to the selected resource.
           </p>
+        )}
+
+        {justRegistered && (
+          <div role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-sm font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+            Registration complete. Email verification is disabled for this local prototype. You can sign in now.
+          </div>
         )}
 
         {error && (

@@ -22,8 +22,10 @@ const userController = {
       `;
       const params = [];
 
-      if (req.user.role_name === 'hod') {
-        const departmentIds = req.user.department_ids || [];
+      if (req.user.role_name === 'hod' || req.user.role_name === 'staff') {
+        const departmentIds = req.user.role_name === 'hod'
+          ? (req.user.department_ids || [])
+          : [req.user.department_id].filter(Boolean);
         if (!departmentIds.length) return res.json({ users: [] });
         sql += ` AND u.department_id IN (${departmentIds.map(() => '?').join(',')})`;
         params.push(...departmentIds);
@@ -83,8 +85,9 @@ const userController = {
       if (!user) {
         return res.status(404).json({ error: 'User not found.' });
       }
-      if (req.user.role_name === 'hod' &&
-          !(req.user.department_ids || [req.user.department_id]).includes(user.department_id)) {
+      if ((req.user.role_name === 'hod' &&
+          !(req.user.department_ids || [req.user.department_id]).includes(user.department_id)) ||
+          (req.user.role_name === 'staff' && user.department_id !== req.user.department_id)) {
         return res.status(404).json({ error: 'User not found.' });
       }
 
@@ -97,10 +100,10 @@ const userController = {
 
   async createUser(req, res) {
     try {
-      const { full_name, username, password, email, role_id, department_id, status } = req.body;
+      const { full_name, username, password, email, role_id, role_name, department_id, status } = req.body;
       const { roll_number, programme, academic_year, semester } = req.body;
 
-      if (!full_name || !username || !password || !email || !role_id) {
+      if (!full_name || !username || !password || !email || (!role_id && !role_name)) {
         return res.status(400).json({ error: 'Full name, username, password, email, and role are required.' });
       }
 
@@ -114,8 +117,29 @@ const userController = {
         return res.status(400).json({ error: 'Username or email already exists in the system.' });
       }
 
-      const role = await dbHelper.get("SELECT name FROM roles WHERE id = ?", [role_id]);
+      if (req.user.role_name === 'hod' && role_name === 'staff') {
+        await dbHelper.run("INSERT OR IGNORE INTO roles (name) VALUES ('staff')");
+      }
+      const role = role_name
+        ? await dbHelper.get('SELECT id, name FROM roles WHERE name = ?', [String(role_name).toLowerCase()])
+        : await dbHelper.get('SELECT id, name FROM roles WHERE id = ?', [role_id]);
       if (!role) return res.status(400).json({ error: 'Selected role does not exist.' });
+      const isHodCreatingUser = req.user.role_name === 'hod';
+      let assignedDepartmentId = department_id ? Number(department_id) : null;
+      if (isHodCreatingUser) {
+        if (!['faculty', 'staff'].includes(role.name)) {
+          return res.status(403).json({ error: 'HODs can create faculty or staff accounts only.' });
+        }
+        const allowedDepartmentIds = (req.user.department_ids || []).map(Number);
+        if (!Number.isInteger(assignedDepartmentId) || !allowedDepartmentIds.includes(assignedDepartmentId)) {
+          return res.status(403).json({ error: 'Select a department assigned to your HOD account.' });
+        }
+        const activeDepartment = await dbHelper.get(
+          'SELECT id FROM departments WHERE id = ? AND active = 1',
+          [assignedDepartmentId]
+        );
+        if (!activeDepartment) return res.status(400).json({ error: 'Select an active assigned department.' });
+      }
       if (role.name === 'student') {
         if (typeof roll_number !== 'string' || !roll_number.trim() || roll_number.trim().length > 40 ||
             typeof programme !== 'string' || !programme.trim() || programme.trim().length > 80 ||
@@ -130,7 +154,7 @@ const userController = {
         if (duplicateRoll) return res.status(409).json({ error: 'A student account already uses this roll number.' });
       }
       const passwordHash = await bcrypt.hash(password, 10);
-      const userStatus = status || 'active';
+      const userStatus = isHodCreatingUser ? 'active' : (status || 'active');
 
       const result = await dbHelper.run(`
         INSERT INTO users (
@@ -139,13 +163,13 @@ const userController = {
           email_verified, email_verified_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, [
-        full_name.trim(), username.trim(), passwordHash, email.trim(), role_id,
-        department_id || null, userStatus,
+        full_name.trim(), username.trim(), passwordHash, email.trim(), role.id,
+        assignedDepartmentId, userStatus,
         role.name === 'student' ? roll_number.trim() : null,
         role.name === 'student' ? programme.trim() : null,
         role.name === 'student' ? academic_year.trim() : null,
         role.name === 'student' ? semester.trim() : null,
-        role.name === 'hod' ? 1 : 0,
+        role.name === 'hod' || isHodCreatingUser ? 1 : 0,
         // Accounts provisioned directly by an administrator are trusted and do not
         // need to complete the self-registration email OTP flow before signing in.
         1
@@ -168,7 +192,7 @@ const userController = {
       // Log activity
       await dbHelper.run(
         "INSERT INTO activity_logs (user_id, action, department_id, metadata) VALUES (?, ?, ?, ?)",
-        [req.user.id, 'User Created', department_id || req.user.department_id, JSON.stringify({ created_user_id: newUserId, username, role: role ? role.name : role_id })]
+        [req.user.id, 'User Created', assignedDepartmentId || req.user.department_id, JSON.stringify({ created_user_id: newUserId, username, role: role.name })]
       );
 
       res.status(201).json({
@@ -368,6 +392,9 @@ const userController = {
 
   async getRoles(req, res) {
     try {
+      // Keep the separate Staff role available even when the existing database
+      // predates the Staff role seeding migration.
+      await dbHelper.run("INSERT OR IGNORE INTO roles (name) VALUES ('staff')");
       const roles = await dbHelper.all("SELECT * FROM roles ORDER BY id ASC");
       res.json({ roles });
     } catch (error) {

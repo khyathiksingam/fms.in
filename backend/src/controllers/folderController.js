@@ -5,8 +5,9 @@ const folderController = {
     try {
       const { parent_folder_id, department_id, scope } = req.query;
       const user = req.user;
-      if (user.role_name === 'hod' && department_id &&
-          !user.department_ids?.includes(Number(department_id))) {
+      if ((user.role_name === 'hod' && department_id &&
+          !user.department_ids?.includes(Number(department_id))) ||
+          (user.role_name === 'staff' && department_id && Number(department_id) !== Number(user.department_id))) {
         return res.status(403).json({ error: 'You are not assigned to the selected department.' });
       }
 
@@ -39,7 +40,7 @@ const folderController = {
       } else if (scope === 'my') {
         sql += " AND f.created_by = ?";
         params.push(user.id);
-      } else if (user.role_name === 'faculty') {
+      } else if (['faculty', 'staff'].includes(user.role_name)) {
         // Faculty sees department folders and their own folders
         sql += " AND (f.department_id = ? OR f.created_by = ?)";
         params.push(user.department_id || -1, user.id);
@@ -67,7 +68,7 @@ const folderController = {
       let currentId = id;
       while (currentId) {
         const folder = await dbHelper.get(`
-          SELECT f.id, f.name, f.parent_folder_id, f.department_id, d.name as department_name
+          SELECT f.id, f.name, f.parent_folder_id, f.department_id, f.created_by, d.name as department_name
           FROM folders f
           LEFT JOIN departments d ON f.department_id = d.id
           WHERE f.id = ?
@@ -76,6 +77,9 @@ const folderController = {
         if (!folder) break;
         if (req.user.role_name === 'hod' &&
             !req.user.department_ids?.includes(folder.department_id)) {
+          return res.status(404).json({ error: 'Folder not found.' });
+        }
+        if (req.user.role_name === 'staff' && folder.department_id !== req.user.department_id && folder.created_by !== req.user.id) {
           return res.status(404).json({ error: 'Folder not found.' });
         }
         breadcrumbs.unshift(folder);
@@ -100,7 +104,7 @@ const folderController = {
       `;
       const params = [];
 
-      if (user.role_name === 'faculty') {
+      if (['faculty', 'staff'].includes(user.role_name)) {
         sql += " AND (f.department_id = ? OR f.created_by = ?)";
         params.push(user.department_id || -1, user.id);
       } else if (user.role_name === 'hod') {
@@ -133,15 +137,17 @@ const folderController = {
       if (parent_folder_id) {
         const parentFolder = await dbHelper.get("SELECT id, department_id FROM folders WHERE id = ?", [parent_folder_id]);
         if (!parentFolder) return res.status(404).json({ error: 'Parent folder not found.' });
-        if (user.role_name === 'hod' &&
-            !user.department_ids?.includes(parentFolder.department_id)) {
+        if ((user.role_name === 'hod' &&
+            !user.department_ids?.includes(parentFolder.department_id)) ||
+            (user.role_name === 'staff' && Number(parentFolder.department_id) !== Number(user.department_id))) {
           return res.status(403).json({ error: 'You cannot create folders under an unrelated department.' });
         }
         if (parentFolder && parentFolder.department_id) {
           deptId = parentFolder.department_id;
         }
       }
-      if (user.role_name === 'hod' && deptId && !user.department_ids?.includes(Number(deptId))) {
+      if ((user.role_name === 'hod' && deptId && !user.department_ids?.includes(Number(deptId))) ||
+          (user.role_name === 'staff' && deptId && Number(deptId) !== Number(user.department_id))) {
         return res.status(403).json({ error: 'You can only create folders in your assigned departments.' });
       }
 

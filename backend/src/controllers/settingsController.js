@@ -7,6 +7,8 @@ const LOGO_DIR = path.resolve(process.env.FFMS_LOGO_DIR || path.resolve(__dirnam
 const DEFAULT_COLLEGE = 'Your College';
 const DEFAULT_SYSTEM = 'Faculty File Management System';
 const DEFAULT_TYPES = 'pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,jpg,jpeg,png,gif,svg,mp4,mov,avi,mp3,wav,zip,rar';
+const STUDENT_EMAIL_VERIFICATION_DISABLED = process.env.NODE_ENV !== 'production'
+  && process.env.FFMS_DISABLE_STUDENT_EMAIL_VERIFICATION === 'true';
 
 function validLogoPath(value) {
   return value === '' || value === '/logo.png' ||
@@ -29,6 +31,7 @@ const settingsController = {
         settings: {
           ...settings,
           student_self_registration: Boolean(settings.student_self_registration),
+          student_email_verification_required: !STUDENT_EMAIL_VERIFICATION_DISABLED,
           college_logo: validLogoPath(settings.college_logo) ? settings.college_logo : '',
           system_logo: validLogoPath(settings.system_logo) ? settings.system_logo : ''
         }

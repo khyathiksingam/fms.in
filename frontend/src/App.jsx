@@ -377,7 +377,7 @@ function AppContent() {
   }
 
   if (pathname === '/student-syllabus') {
-    return <SyllabusPage studentView />;
+    return <SyllabusPage key={currentPath} studentView />;
   }
 
   return (

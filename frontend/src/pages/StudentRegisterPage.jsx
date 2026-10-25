@@ -81,6 +81,10 @@ export default function StudentRegisterPage() {
         password,
         confirm_password: confirmPassword
       });
+      if (result?.emailVerified) {
+        navigate('/student-login?registered=1');
+        return;
+      }
       if (!result?.messageId || result.message !== 'OTP sent successfully.') {
         const params = new URLSearchParams({
           email: result?.email || cleanEmail,

@@ -11,6 +11,8 @@ const scrypt = promisify(crypto.scrypt);
 const OTP_EXPIRY_MS = 10 * 60 * 1000;
 const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
+// Set only on the short-lived prototype deployment; leave unset for production.
+const STUDENT_EMAIL_VERIFICATION_DISABLED = process.env.FFMS_DISABLE_STUDENT_EMAIL_VERIFICATION === 'true';
 
 async function hashVerificationOtp(otp) {
   const salt = crypto.randomBytes(16);
@@ -196,13 +198,27 @@ const authController = {
         return res.status(401).json({ error: 'Incorrect username or password.' });
       }
 
-      // Check student email verification status
+      // Skip OTP only for an explicitly enabled local prototype; promote pending demo accounts on login.
       if (user.role_name === 'student' && (!user.email_verified || user.email_verified === 0)) {
-        return res.status(403).json({
-          error: 'Please verify your college email before logging in.',
-          unverified: true,
-          email: user.email
-        });
+        if (!STUDENT_EMAIL_VERIFICATION_DISABLED) {
+          return res.status(403).json({
+            error: 'Please verify your college email before logging in.',
+            unverified: true,
+            email: user.email
+          });
+        }
+        await dbHelper.run(`
+          UPDATE users
+          SET email_verified = 1,
+              email_verified_at = COALESCE(email_verified_at, CURRENT_TIMESTAMP),
+              verification_otp_hash = NULL,
+              verification_otp_expires_at = NULL,
+              verification_otp_attempts = 0,
+              verification_otp_last_sent_at = NULL,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `, [user.id]);
+        user.email_verified = 1;
       }
 
       const assignedDepartments = user.role_name === 'hod'
@@ -242,10 +258,10 @@ const authController = {
           VALUES (?, ?, ?, 'student_login')
         `, [user.id, user.roll_number, user.department_id]);
       } else {
-        const isFacultyRole = ['faculty', 'hod', 'admin'].includes(user.role_name);
+        const roleLabel = user.role_name === 'hod' ? 'HOD' : user.role_name === 'admin' ? 'Admin' : user.role_name === 'staff' ? 'Staff' : 'Faculty';
         await logUserActivity(
           user,
-          isFacultyRole ? 'Faculty Login' : 'User Login',
+          ['faculty', 'staff', 'hod', 'admin'].includes(user.role_name) ? `${roleLabel} Login` : 'User Login',
           req,
           { login_type: user.role_name || 'user', session_id: sessionId },
           sessionId
@@ -395,8 +411,9 @@ const authController = {
           VALUES (?, ?, ?, 'student_logout')
         `, [req.user.id, req.user.roll_number || null, req.user.department_id]);
       } else {
-        const isFacultyRole = req.user.role_name === 'faculty' || req.user.role_name === 'hod' || req.user.role_name === 'admin';
-        await logUserActivity(req.user, isFacultyRole ? 'Faculty Logout' : 'User Logout', req, {
+        const roleLabel = req.user.role_name === 'hod' ? 'HOD' : req.user.role_name === 'admin' ? 'Admin' : req.user.role_name === 'staff' ? 'Staff' : 'Faculty';
+        const isPortalRole = ['faculty', 'staff', 'hod', 'admin'].includes(req.user.role_name);
+        await logUserActivity(req.user, isPortalRole ? `${roleLabel} Logout` : 'User Logout', req, {
           logout_type: req.user.role_name || 'user',
           session_id: req.authSession.id,
           login_at: req.authSession.created_at,
@@ -476,9 +493,11 @@ const authController = {
       }
 
       const passwordHash = await bcrypt.hash(password, 10);
-      const otp = String(crypto.randomInt(100000, 1000000));
-      const otpHash = await hashVerificationOtp(otp);
-      const timing = otpTiming();
+      const otp = STUDENT_EMAIL_VERIFICATION_DISABLED ? null : String(crypto.randomInt(100000, 1000000));
+      const otpHash = otp ? await hashVerificationOtp(otp) : null;
+      const timing = STUDENT_EMAIL_VERIFICATION_DISABLED
+        ? { expiresAt: null, resendAvailableAt: null, sentAt: null }
+        : otpTiming();
       let studentRole = await dbHelper.get("SELECT id FROM roles WHERE name = 'student'");
       if (!studentRole) {
         await dbHelper.run("INSERT OR IGNORE INTO roles (id, name) VALUES (4, 'student')");
@@ -500,7 +519,7 @@ const authController = {
           status, roll_number, email_verified, verification_otp_hash,
           verification_otp_expires_at, verification_otp_attempts,
           verification_otp_last_sent_at, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, 0, ?, ?, 0, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, 0, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `, [
         cleanFullName,
         username,
@@ -509,10 +528,19 @@ const authController = {
         studentRole.id,
         deptId,
         cleanRollNumber,
+        STUDENT_EMAIL_VERIFICATION_DISABLED ? 1 : 0,
         otpHash,
         timing.expiresAt,
         timing.sentAt
       ]);
+
+      if (STUDENT_EMAIL_VERIFICATION_DISABLED) {
+        return res.status(201).json({
+          message: 'Registration successful. Email verification is disabled for the local prototype.',
+          email: cleanEmail,
+          emailVerified: true
+        });
+      }
 
       try {
         const delivery = await emailService.sendStudentVerificationOtp({

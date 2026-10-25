@@ -9,6 +9,24 @@ import { api, getToken } from '../utils/api';
 import { formatBytes, formatDate, formatRelativeTime } from '../utils/formatters';
 import { getFileIcon } from '../components/files/FileCard';
 
+function formatActivityAction(log) {
+  let metadata = log.metadata;
+  if (typeof metadata === 'string') {
+    try { metadata = JSON.parse(metadata); } catch { metadata = {}; }
+  }
+
+  const action = String(log.action || 'Activity');
+  const eventType = action.endsWith('Login') ? 'Login' : action.endsWith('Logout') ? 'Logout' : null;
+  const role = log.user_role || metadata?.login_type || metadata?.logout_type;
+  if (eventType && action.startsWith('Faculty ') && ['hod', 'admin', 'staff'].includes(role)) {
+    return `${role === 'hod' ? 'HOD' : role === 'admin' ? 'Admin' : 'Staff'} ${eventType.toLowerCase()}`;
+  }
+  if (action.startsWith('HOD ')) return `HOD ${action.slice(4).toLowerCase()}`;
+  if (action.startsWith('Admin ')) return `Admin ${action.slice(6).toLowerCase()}`;
+  if (action.startsWith('Staff ')) return `Staff ${action.slice(6).toLowerCase()}`;
+  return action.toLowerCase();
+}
+
 export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile }) {
   const { user, isAdmin, isHOD, isFaculty } = useAuth();
   const { isDark } = useTheme();
@@ -48,6 +66,7 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
     ? data.recentUploads
     : fallbackFiles;
   const recentActivity = data?.recentActivity || data?.deptActivity || [];
+  const showActivityStream = isAdmin;
 
   return (
     <div className="space-y-6 text-left">
@@ -230,6 +249,22 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
           </>
         ) : (
           <>
+            {[
+              { label: 'Total Faculty', value: stats.totalFaculty, icon: Users, tone: 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400' },
+              { label: 'Departments', value: stats.totalDepartments, icon: Building2, tone: 'bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400' },
+              { label: 'College Files', value: stats.totalFiles, icon: Files, tone: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400' }
+            ].map(item => {
+              const Icon = item.icon;
+              return (
+                <div key={item.label} className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{item.label}</span>
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${item.tone}`}><Icon className="h-4 w-4" /></div>
+                  </div>
+                  <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{item.value ?? 0}</div>
+                </div>
+              );
+            })}
             <div className="rounded-2xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-800 p-5 shadow-xs transition hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800">
               <div className="flex items-center justify-between text-slate-400">
                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">My Files</span>
@@ -286,9 +321,9 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
       </div>
 
       {/* Two Column Layout: Recent Files & Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 gap-6 ${showActivityStream ? 'lg:grid-cols-3' : ''}`}>
         {/* Recent Files (2 cols) */}
-        <div className="lg:col-span-2 rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-800 p-6 shadow-xs">
+        <div className={`${showActivityStream ? 'lg:col-span-2 ' : ''}rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-800 p-6 shadow-xs`}>
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
@@ -356,8 +391,7 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
           </div>
         </div>
 
-        {/* Live Activity Stream (1 col) */}
-        <div className="rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-800 p-6 shadow-xs">
+        {showActivityStream && <div className="rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-800 p-6 shadow-xs">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-purple-600 dark:text-purple-400" />
@@ -388,7 +422,8 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-slate-700 dark:text-slate-300">
-                      <span className="font-bold text-slate-900 dark:text-white">{log.user_name || 'User'}</span> {log.action.toLowerCase()}
+                      <span className="font-bold text-slate-900 dark:text-white">{log.user_name || 'User'}</span>{' '}
+                      {formatActivityAction(log)}
                       {log.metadata?.session_duration && (
                         <span className="ml-1 font-semibold text-indigo-600 dark:text-indigo-400">· session {log.metadata.session_duration}</span>
                       )}
@@ -399,7 +434,7 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
               ))
             )}
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );

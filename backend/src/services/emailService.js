@@ -63,8 +63,21 @@ async function sendStudentVerificationOtp({ to, studentName, otp }) {
       }),
       signal: AbortSignal.timeout(15000)
     });
-  } catch {
-    throw new Error('Unable to reach Brevo email service. Please try again.');
+  } catch (error) {
+    const causeCode = error?.cause?.code || error?.code;
+    // Keep the diagnostic useful without logging request headers, API keys, or OTPs.
+    console.error('Brevo email request failed:', causeCode || error?.name || 'unknown error');
+
+    if (causeCode === 'EACCES' || causeCode === 'EPERM') {
+      throw new Error('Node.js is blocked from connecting to Brevo. Allow node.exe outbound HTTPS (port 443) in Windows Firewall or your antivirus, then restart the backend.');
+    }
+    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+      throw new Error('The connection to Brevo timed out. Check your internet, VPN, proxy, or firewall and try again.');
+    }
+    if (causeCode === 'ENOTFOUND' || causeCode === 'EAI_AGAIN') {
+      throw new Error('The backend could not resolve Brevo’s address. Check DNS, VPN, or proxy settings and try again.');
+    }
+    throw new Error('Unable to connect to Brevo from the backend. Check the backend terminal for the connection error, then try again.');
   }
 
   let result = {};
