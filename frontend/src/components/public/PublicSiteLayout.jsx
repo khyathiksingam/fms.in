@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowRight, GraduationCap, Moon, Sun } from 'lucide-react';
 import { api } from '../../utils/api';
 import { useTheme } from '../../context/ThemeContext';
+import { getCollegeLogoUrl, handleCollegeLogoError } from '../../utils/branding';
 
 const navItems = [
   ['Home', '/'],
@@ -21,7 +22,7 @@ export default function PublicSiteLayout({ activePage, children }) {
       .catch(error => console.warn('Unable to load public branding settings:', error.message));
   }, []);
 
-  const logo = settings?.college_logo || settings?.system_logo || '/logo.png';
+  const logo = getCollegeLogoUrl(settings?.college_logo || settings?.system_logo);
   const collegeName = settings?.college_name || 'VNRVJIET';
 
   return (
@@ -32,7 +33,7 @@ export default function PublicSiteLayout({ activePage, children }) {
             <img
               src={logo}
               alt={`${collegeName} logo`}
-              onError={event => { event.currentTarget.src = '/logo.png'; }}
+              onError={event => handleCollegeLogoError(event)}
               className="h-12 w-12 rounded-xl object-contain"
             />
             <span className="min-w-0">
@@ -110,3 +111,4 @@ export default function PublicSiteLayout({ activePage, children }) {
     </div>
   );
 }
+
