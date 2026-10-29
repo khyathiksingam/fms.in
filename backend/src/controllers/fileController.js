@@ -284,7 +284,7 @@ const fileController = {
       }
 
       // Count total for pagination
-      const countSql = `SELECT COUNT(*) as total FROM (${sql})`;
+      const countSql = `SELECT COUNT(*) as total FROM (${sql}) AS count_subquery`;
       const countRes = await dbHelper.get(countSql, params);
       const total = countRes ? countRes.total : 0;
 

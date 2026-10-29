@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, LockKeyhole, UserRound, Mail, Hash, AlertCircle, RefreshCw } from 'lucide-react';
 import { api } from '../utils/api';
 import { useTheme } from '../context/ThemeContext';
-import { VNRVJIET_DARK_EMBLEM } from '../utils/branding';
+import { getDisplayedLogo, DEFAULT_FALLBACK_LOGO } from '../utils/branding';
+import RoleBadge from '../components/common/RoleBadge';
+import ThemeToggle from '../components/common/ThemeToggle';
 
 export default function StudentRegisterPage() {
   const { isDark } = useTheme();
+  const [collegeSettings, setCollegeSettings] = useState(null);
   const [fullName, setFullName] = useState('');
   const [rollNumber, setRollNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -27,6 +30,7 @@ export default function StudentRegisterPage() {
     api.publicGet('/settings/public')
       .then(res => {
         if (res?.settings) {
+          setCollegeSettings(res.settings);
           setSelfRegistrationEnabled(Boolean(res.settings.student_self_registration));
         } else {
           setSelfRegistrationEnabled(false);
@@ -141,38 +145,54 @@ export default function StudentRegisterPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f4f6fb] p-4 dark:bg-slate-950">
-      <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-7 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+    <main className="relative flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-slate-950 transition-colors">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+
+      <section className="app-card w-full max-w-md p-7 shadow-xl">
         <div className="flex items-center justify-between">
           <button
             type="button"
             onClick={() => navigate('/student-login')}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#2846C7] hover:underline focus-visible:outline-2 dark:text-blue-300 cursor-pointer"
+            className="inline-flex items-center gap-2 text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400 hover:underline cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" /> Back to Student Login
           </button>
         </div>
 
         <div className="mt-6 text-center">
-          <img src={isDark ? VNRVJIET_DARK_EMBLEM : '/branding/vnrvjiet-emblem.png'} alt="VNRVJIET emblem" className="mx-auto h-16 w-16 object-contain" />
-          <p className="mt-3 text-xs font-extrabold tracking-widest text-[#16265C] dark:text-slate-100">VNRVJIET</p>
+          <div className="mx-auto flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white p-1 border border-slate-200 dark:border-slate-800 dark:bg-slate-900">
+            <img 
+              src={getDisplayedLogo(collegeSettings, isDark)} 
+              alt={`${collegeSettings?.college_name || 'College'} logo`} 
+              className="h-full w-full object-contain" 
+              onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_LOGO; }}
+            />
+          </div>
+          <p className="mt-3 text-xs font-extrabold tracking-wider text-slate-700 dark:text-slate-300 uppercase truncate">
+            {collegeSettings?.college_name || 'College Portal'}
+          </p>
           <h1 className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-white">Create Student Account</h1>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Register with your official college credentials.</p>
+          <div className="mt-2 flex justify-center">
+            <RoleBadge role="student" />
+          </div>
+          <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">Register with your official college credentials.</p>
         </div>
 
         {selfRegistrationEnabled === false && (
           <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-center dark:border-amber-900/60 dark:bg-amber-950/40">
             <AlertCircle className="mx-auto h-8 w-8 text-amber-600 dark:text-amber-400" />
-            <p className="mt-3 text-sm font-semibold text-amber-900 dark:text-amber-200">
+            <p className="mt-3 text-xs font-semibold text-amber-900 dark:text-amber-200">
               Student registration is currently disabled by the administrator.
             </p>
-            <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+            <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">
               Please contact your college administrator to activate self-registration.
             </p>
             <button
               type="button"
               onClick={() => navigate('/student-login')}
-              className="mt-4 rounded-xl bg-[#16265C] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#2846C7] cursor-pointer"
+              className="btn-primary mt-4 text-xs font-bold"
             >
               Return to Student Login
             </button>
@@ -182,17 +202,17 @@ export default function StudentRegisterPage() {
         {selfRegistrationEnabled === true && (
           <>
             {error && (
-              <div role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
-                <p className="font-semibold">{error}</p>
+              <div role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+                <p>{error}</p>
                 {canResend && (
                   <div className="mt-2.5 border-t border-rose-200 pt-2 dark:border-rose-900">
                     <button
                       type="button"
                       onClick={handleResend}
                       disabled={resending}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50 cursor-pointer"
+                      className="btn-danger text-xs py-1 px-2.5"
                     >
-                      <RefreshCw className={`h-3.5 w-3.5 ${resending ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`h-3 w-3 ${resending ? 'animate-spin' : ''}`} />
                       {resending ? 'Sending OTP…' : 'Resend OTP'}
                     </button>
                     {resendStatus && (
@@ -204,37 +224,43 @@ export default function StudentRegisterPage() {
             )}
 
             <form onSubmit={handleRegister} className="mt-5 space-y-3.5">
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Full Name
-                <span className="relative mt-1 block">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Full Name
+                </label>
+                <div className="relative mt-1">
                   <UserRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
                     required
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
                     placeholder="e.g. Ramesh Kumar"
-                    className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm focus-visible:outline-2 focus-visible:outline-[#2846C7] dark:border-slate-700 dark:bg-slate-800"
+                    className="app-input pl-9"
                   />
-                </span>
-              </label>
+                </div>
+              </div>
 
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Student Roll Number
-                <span className="relative mt-1 block">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Student Roll Number
+                </label>
+                <div className="relative mt-1">
                   <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
                     required
                     value={rollNumber}
                     onChange={e => setRollNumber(e.target.value.toUpperCase())}
                     placeholder="e.g. 22071A0501"
-                    className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm uppercase focus-visible:outline-2 focus-visible:outline-[#2846C7] dark:border-slate-700 dark:bg-slate-800"
+                    className="app-input pl-9 uppercase"
                   />
-                </span>
-              </label>
+                </div>
+              </div>
 
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Official College Email
-                <span className="relative mt-1 block">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Official College Email
+                </label>
+                <div className="relative mt-1">
                   <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
                     required
@@ -242,15 +268,17 @@ export default function StudentRegisterPage() {
                     value={email}
                     onChange={e => setEmail(e.target.value.toLowerCase())}
                     placeholder="student@vnrvjiet.in"
-                    className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm lowercase focus-visible:outline-2 focus-visible:outline-[#2846C7] dark:border-slate-700 dark:bg-slate-800"
+                    className="app-input pl-9 lowercase"
                   />
-                </span>
-                <span className="mt-1 block text-[11px] text-slate-500">Only @vnrvjiet.in emails are accepted.</span>
-              </label>
+                </div>
+                <span className="mt-1 block text-[10px] text-slate-500">Only @vnrvjiet.in emails are accepted.</span>
+              </div>
 
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Password
-                <span className="relative mt-1 block">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Password
+                </label>
+                <div className="relative mt-1">
                   <LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
                     required
@@ -259,14 +287,16 @@ export default function StudentRegisterPage() {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="At least 8 characters"
-                    className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm focus-visible:outline-2 focus-visible:outline-[#2846C7] dark:border-slate-700 dark:bg-slate-800"
+                    className="app-input pl-9"
                   />
-                </span>
-              </label>
+                </div>
+              </div>
 
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Confirm Password
-                <span className="relative mt-1 block">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Confirm Password
+                </label>
+                <div className="relative mt-1">
                   <LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
                     required
@@ -275,15 +305,15 @@ export default function StudentRegisterPage() {
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter password"
-                    className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm focus-visible:outline-2 focus-visible:outline-[#2846C7] dark:border-slate-700 dark:bg-slate-800"
+                    className="app-input pl-9"
                   />
-                </span>
-              </label>
+                </div>
+              </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-[#16265C] px-4 py-3 font-bold text-white hover:bg-[#2846C7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4B64E] disabled:opacity-60 cursor-pointer"
+                className="btn-primary w-full py-2.5 text-xs font-bold mt-2"
               >
                 {loading ? 'Creating Account…' : 'Create Student Account'}
               </button>
@@ -294,7 +324,7 @@ export default function StudentRegisterPage() {
               <button
                 type="button"
                 onClick={() => navigate('/student-login')}
-                className="font-bold text-[#2846C7] hover:underline focus-visible:outline-2 dark:text-blue-300 cursor-pointer"
+                className="font-bold text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-400 cursor-pointer"
               >
                 Sign In
               </button>

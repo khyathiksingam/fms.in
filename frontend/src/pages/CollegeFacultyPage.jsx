@@ -26,7 +26,7 @@ export default function CollegeFacultyPage() {
 
   return (
     <PublicSiteLayout activePage="Faculty">
-      <section className="bg-[#102a4d] text-white">
+      <section className="app-hero text-white rounded-none border-x-0 border-t-0">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20">
           <span className="text-xs font-black uppercase tracking-[.2em] text-amber-300">Our people</span>
           <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Faculty Directory</h1>
@@ -39,20 +39,20 @@ export default function CollegeFacultyPage() {
         <label className="relative block max-w-xl">
           <span className="sr-only">Search faculty by name or department</span>
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search name or department" className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-400" />
+          <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search name or department" className="app-input pl-11 pr-4 py-3" />
         </label>
         {loading ? (
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500" role="status">Loading faculty directory…</div>
+          <div className="app-card mt-8 p-10 text-center text-sm text-slate-500" role="status">Loading faculty directory…</div>
         ) : error ? (
-          <div className="mt-8 flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm font-semibold text-rose-800" role="alert"><CircleAlert className="h-5 w-5" />{error}</div>
+          <div className="mt-8 flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm font-semibold text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200" role="alert"><CircleAlert className="h-5 w-5" />{error}</div>
         ) : filtered.length ? (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map(person => (
-              <article key={person.id} className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#12305a] dark:bg-blue-950/60 dark:text-blue-200"><UserRound className="h-5 w-5" /></div>
+              <article key={person.id} className="app-card flex items-center gap-4 p-5 transition hover:-translate-y-0.5 hover:shadow-lg">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200"><UserRound className="h-5 w-5" /></div>
                 <div className="min-w-0">
-                  <h2 className="truncate text-sm font-extrabold text-[#12305a] dark:text-slate-100">{person.full_name}</h2>
-                  <a href={`/college-departments/${person.department_id}`} className="mt-1 block truncate text-xs font-semibold text-slate-500 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:text-slate-400 dark:hover:text-blue-300">
+                  <h2 className="truncate text-sm font-extrabold text-slate-900 dark:text-slate-100">{person.full_name}</h2>
+                  <a href={`/college-departments/${person.department_id}`} className="mt-1 block truncate text-xs font-semibold text-slate-500 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:text-slate-400 dark:hover:text-blue-300">
                     {person.department_name} ({person.department_code})
                   </a>
                 </div>
@@ -60,7 +60,7 @@ export default function CollegeFacultyPage() {
             ))}
           </div>
         ) : (
-          <p className="mt-8 rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
+          <p className="app-card mt-8 p-10 text-center text-sm text-slate-500">
             {search ? 'No faculty members match this search.' : 'Faculty information is not available yet.'}
           </p>
         )}

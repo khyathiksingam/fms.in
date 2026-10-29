@@ -2,11 +2,27 @@
 node_modules/
 frontend/node_modules/
 
-# Environment files
+# Environment files and secrets (NEVER COMMIT)
 .env
 .env.local
 .env.*.local
+*.env
 **/.env*
+!.env.example
+!frontend/.env.example
+
+# Production application configs and credential files
+application-prod.properties
+application-prod.yml
+backend-java/src/main/resources/application-prod.properties
+backend-java/src/main/resources/application-prod.yml
+**/credentials.json
+**/client_secret*.json
+*.secret
+*.key
+*.pem
+*.pfx
+*.p12
 
 # Local databases and uploaded files
 **/*.sqlite
@@ -17,12 +33,14 @@ backend/data/
 backend/storage/uploads/
 backend/storage/logos/
 **/uploads/
+**/logos/
 backend/src/config/restoreUsers.js
 backend/src/config/seed_devika.js
 backend/test/test_user_and_settings.js
-**/*.pem
-**/*.key
-**/*.pfx
+
+# Maven target and build artifacts
+backend-java/target/
+backend-java/.flattened-pom.xml
 
 # Logs
 npm-debug.log*

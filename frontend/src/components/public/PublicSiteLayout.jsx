@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowRight, GraduationCap, Moon, Sun } from 'lucide-react';
 import { api } from '../../utils/api';
 import { useTheme } from '../../context/ThemeContext';
+import { getDisplayedLogo, DEFAULT_FALLBACK_LOGO } from '../../utils/branding';
+import ThemeToggle from '../common/ThemeToggle';
 
 const navItems = [
   ['Home', '/'],
@@ -12,7 +12,7 @@ const navItems = [
 ];
 
 export default function PublicSiteLayout({ activePage, children }) {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark } = useTheme();
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
@@ -21,35 +21,27 @@ export default function PublicSiteLayout({ activePage, children }) {
       .catch(error => console.warn('Unable to load public branding settings:', error.message));
   }, []);
 
-  const logo = settings?.college_logo || settings?.system_logo || '/logo.png';
-  const collegeName = settings?.college_name || 'VNRVJIET';
+  const logo = getDisplayedLogo(settings, isDark);
+  const collegeName = settings?.college_name || 'College Portal';
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 dark:bg-slate-950 dark:text-slate-100">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
+    <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 shadow-2xs backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <a href="/" className="flex items-center gap-3" aria-label={`${collegeName} home`}>
             <img
               src={logo}
               alt={`${collegeName} logo`}
-              onError={event => { event.currentTarget.src = '/logo.png'; }}
-              className="h-12 w-12 rounded-xl object-contain"
+              onError={event => { event.currentTarget.src = DEFAULT_FALLBACK_LOGO; }}
+              className="h-10 w-10 rounded-xl object-contain"
             />
             <span className="min-w-0">
-              <span className="block truncate text-sm font-black uppercase tracking-wide text-[#12305a] dark:text-slate-100">{collegeName}</span>
-              <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400">Faculty File Management System</span>
+              <span className="block truncate text-xs font-black uppercase tracking-wide text-brand-900 dark:text-slate-100">{collegeName}</span>
+              <span className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Faculty File Management System</span>
             </span>
           </a>
           <div className="flex items-center justify-between gap-3 sm:justify-end">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#12305a] transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-amber-300 dark:hover:bg-slate-700"
-              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
+            <ThemeToggle />
             <nav aria-label="Main navigation" className="flex min-w-0 items-center gap-1 overflow-x-auto">
               {navItems.map(([label, href]) => {
                 const active = activePage === label;
@@ -58,8 +50,8 @@ export default function PublicSiteLayout({ activePage, children }) {
                     key={label}
                     href={href}
                     aria-current={active ? 'page' : undefined}
-                    className={`whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] sm:px-3 ${
-                      active ? 'bg-blue-50 text-[#12305a] dark:bg-blue-950/60 dark:text-blue-100' : 'text-slate-600 hover:bg-slate-100 hover:text-[#12305a] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
+                    className={`whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 sm:px-3 ${
+                      active ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
                     }`}
                   >
                     {label}
@@ -67,7 +59,7 @@ export default function PublicSiteLayout({ activePage, children }) {
                 );
               })}
             </nav>
-            <a href="/faculty-portal" className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#12305a] px-4 py-2.5 text-xs font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#1b467e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#2563eb]">
+            <a href="/faculty-portal" className="btn-primary text-xs py-2 px-3.5">
               Login <ArrowRight className="h-3.5 w-3.5" />
             </a>
           </div>
@@ -76,7 +68,7 @@ export default function PublicSiteLayout({ activePage, children }) {
 
       <main>{children}</main>
 
-      <footer id="contact" className="mt-16 bg-[#0b1d38] text-white">
+      <footer id="contact" className="mt-16 bg-slate-900 dark:bg-slate-950 text-white border-t border-slate-800">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 sm:px-6 lg:grid-cols-3">
           <div>
             <div className="flex items-center gap-2 text-base font-black">

@@ -68,13 +68,13 @@ export default function StudentResourceActivityPage() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="flex items-center gap-2 text-xl font-extrabold text-slate-900 dark:text-white"><Activity className="h-5 w-5 text-[#2846C7]" />{isAdmin ? 'Student Academic Activity Monitor' : 'My Student Resource Activity'}</h1>
+        <h1 className="flex items-center gap-2 text-xl font-extrabold text-slate-900 dark:text-white"><Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />{isAdmin ? 'Student Academic Activity Monitor' : 'My Student Resource Activity'}</h1>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{isAdmin ? 'Student login and published resource access activity.' : isHOD ? 'Student access activity for published resources in your department.' : 'Student access activity for resources you uploaded or own.'}</p>
       </header>
 
       {isAdmin && data && <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {summaryCards.map(([key, title, format]) => <section key={key} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="text-xs font-bold text-[#16265C] dark:text-white">{title}</h2>
+        {summaryCards.map(([key, title, format]) => <section key={key} className="app-card p-4">
+          <h2 className="text-xs font-bold text-slate-900 dark:text-white">{title}</h2>
           <ul className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">
             {(data[key] || []).slice(0, 4).map((row, index) => <li key={`${row.student_id || row.subject_code || row.department_name || row.regulation || row.faculty_name}-${index}`} className="truncate">{format(row)}</li>)}
             {!data[key]?.length && <li className="text-slate-400">No activity yet</li>}
@@ -82,7 +82,7 @@ export default function StudentResourceActivityPage() {
         </section>)}
       </div>}
 
-      <section className="grid gap-2 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4 dark:border-slate-800 dark:bg-slate-900" aria-label="Activity filters">
+      <section className="app-card grid gap-2 p-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Activity filters">
         {isAdmin && <input aria-label="Student name or ID" value={filters.student} onChange={event => update('student', event.target.value)} placeholder="Student name or ID" className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-xs dark:border-slate-700" />}
         <input aria-label="Roll number" value={filters.roll_number} onChange={event => update('roll_number', event.target.value)} placeholder="Roll number" className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-xs dark:border-slate-700" />
         <select aria-label="Department" value={filters.department_id} onChange={event => update('department_id', event.target.value)} className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900">
@@ -98,7 +98,7 @@ export default function StudentResourceActivityPage() {
       </section>
 
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/50 dark:text-rose-200">{error}</p>}
-      <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" aria-label="Student access activity">
+      <section className="app-card overflow-x-auto p-0" aria-label="Student access activity">
         {loading ? <div className="flex min-h-36 items-center justify-center gap-2 text-sm text-slate-500"><LoaderCircle className="h-4 w-4 animate-spin" />Loading activity…</div>
           : data.activity?.length ? <table className="w-full min-w-[900px] text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300"><tr>{['Student', 'Roll Number', 'Department', 'Resource Type', 'Subject', 'Regulation', 'Action', 'Date and Time'].map(title => <th key={title} className="px-3 py-3 font-bold">{title}</th>)}</tr></thead>

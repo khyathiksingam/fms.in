@@ -1,15 +1,27 @@
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const assert = require('node:assert/strict');
 const bcrypt = require('bcryptjs');
+
+const testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ffms-hod-seed-'));
+process.env.FFMS_DATA_DIR = testDataDir;
+process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'TestAdminPassword123!';
+process.env.FFMS_HOD_TEMP_PASSWORD = process.env.FFMS_HOD_TEMP_PASSWORD || 'TestHodTempPassword123!';
+
 const seed = require('../src/config/seed');
-const { dbHelper } = require('../src/config/db');
+const { runMigrations } = require('../src/config/migrate');
+const { dbHelper, _resetForTesting } = require('../src/config/db');
 
 async function run() {
-  await seed();
-  const initial = await dbHelper.get(`
-    SELECT u.id, u.password_hash, u.must_change_password
-    FROM users u JOIN roles r ON r.id = u.role_id
-    WHERE r.name = 'hod' AND u.username = 'hod.p.kishore'
-  `);
+  try {
+    await runMigrations();
+    await seed();
+    const initial = await dbHelper.get(`
+      SELECT u.id, u.password_hash, u.must_change_password
+      FROM users u JOIN roles r ON r.id = u.role_id
+      WHERE r.name = 'hod' AND u.username IN ('p.kishore', 'hod.p.kishore')
+    `);
   assert.ok(initial, 'New HOD account is seeded');
   assert.equal(initial.must_change_password, 1);
 
@@ -28,6 +40,14 @@ async function run() {
   assert.equal(afterCount.count, beforeSecondRun.count, 'Repeat seeding does not duplicate HOD accounts');
   assert.equal(afterMappingCount.count, initialMappingCount.count, 'Repeat seeding does not duplicate HOD department assignments');
   console.log('HOD seeding migration is idempotent and preserves existing passwords.');
+  } finally {
+    _resetForTesting();
+    try {
+      fs.rmSync(testDataDir, { recursive: true, force: true });
+    } catch (e) {
+      // ignore
+    }
+  }
 }
 
 run().catch(error => {

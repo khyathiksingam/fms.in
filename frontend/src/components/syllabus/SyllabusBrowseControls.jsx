@@ -88,7 +88,7 @@ export default function SyllabusBrowseControls({
     <section className="syllabus-department-directory rounded-3xl p-4 sm:p-6" aria-labelledby="departments-heading">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 id="departments-heading" className="text-lg font-extrabold text-[#16265C] dark:text-white">Browse departments</h2>
+          <h2 id="departments-heading" className="text-lg font-extrabold text-slate-900 dark:text-white">Browse departments</h2>
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Choose a department to see matching published syllabi.</p>
         </div>
         <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -98,7 +98,7 @@ export default function SyllabusBrowseControls({
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {departmentsByGroup.map(group => (
           <section key={group.title} aria-labelledby={`department-group-${group.title.replace(/\W+/g, '-').toLowerCase()}`}>
-            <h3 id={`department-group-${group.title.replace(/\W+/g, '-').toLowerCase()}`} className="mb-2 border-b border-slate-200 pb-2 text-xs font-extrabold tracking-wider text-[#16265C] dark:border-slate-700 dark:text-[#F4B64E]">{group.title}</h3>
+            <h3 id={`department-group-${group.title.replace(/\W+/g, '-').toLowerCase()}`} className="mb-2 border-b border-slate-200 pb-2 text-xs font-extrabold tracking-wider text-slate-900 dark:border-slate-700 dark:text-amber-400">{group.title}</h3>
             {group.items.length ? <ul className="space-y-1.5">
               {group.items.map(department => {
                 const count = upstreamSubjects.filter(row => department.department_ids.includes(Number(row.department_id))).length;
@@ -147,7 +147,7 @@ export default function SyllabusBrowseControls({
     <div className="space-y-5">
       <section aria-labelledby="programs-heading">
         <div className="mb-3">
-          <h2 id="programs-heading" className="text-lg font-extrabold text-[#16265C] dark:text-white">Browse programmes</h2>
+          <h2 id="programs-heading" className="text-lg font-extrabold text-slate-900 dark:text-white">Browse programmes</h2>
           <p className="text-xs text-slate-600 dark:text-slate-300">Choose a programme to narrow the published curriculum.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -160,14 +160,14 @@ export default function SyllabusBrowseControls({
                 type="button"
                 aria-pressed={active}
                 onClick={() => onFilterChange('program', active ? '' : program.value)}
-                className={`syllabus-program-card flex min-h-24 items-center justify-between gap-2 rounded-2xl border p-4 text-left ${active ? 'selected border-[#16265C] bg-[#eef2fb] text-[#16265C] dark:border-[#F4B64E] dark:bg-slate-800 dark:text-white' : 'border-slate-200 bg-white text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100'}`}
+                className={`syllabus-program-card flex min-h-24 items-center justify-between gap-2 rounded-2xl border p-4 text-left ${active ? 'selected border-blue-700 bg-blue-50 text-blue-900 dark:border-amber-400 dark:bg-slate-800 dark:text-white' : 'border-slate-200 bg-white text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100'}`}
               >
                 <span className="min-w-0">
                   <span className="block font-bold">{program.name}</span>
-                  <span className={`mt-1 block text-xs ${active ? 'text-[#334879] dark:text-slate-300' : 'text-slate-600 dark:text-slate-400'}`}>{program.subtitle}</span>
+                  <span className={`mt-1 block text-xs ${active ? 'text-blue-800 dark:text-slate-300' : 'text-slate-600 dark:text-slate-400'}`}>{program.subtitle}</span>
                   <span className="mt-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">{program.count} {program.count === 1 ? 'document' : 'documents'}</span>
                 </span>
-                <Icon className={`h-5 w-5 shrink-0 ${active ? 'text-[#16265C] dark:text-[#F4B64E]' : 'text-[#F4B64E]'}`} aria-hidden="true" />
+                <Icon className={`h-5 w-5 shrink-0 ${active ? 'text-blue-700 dark:text-amber-400' : 'text-amber-500'}`} aria-hidden="true" />
               </button>
             );
           })}
@@ -175,7 +175,7 @@ export default function SyllabusBrowseControls({
       </section>
 
       <section aria-labelledby="regulations-heading">
-        <h2 id="regulations-heading" className="mb-2 text-sm font-bold text-[#16265C] dark:text-white">Regulation</h2>
+        <h2 id="regulations-heading" className="mb-2 text-sm font-bold text-slate-900 dark:text-white">Regulation</h2>
         <div className="flex flex-wrap gap-2">
           {[{ value: '', label: 'All', document_count: null }, ...directoryRegulations.map(row => ({
             value: row.code,

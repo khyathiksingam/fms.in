@@ -3,15 +3,26 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const LOGO_DIR = path.resolve(process.env.FFMS_LOGO_DIR || path.resolve(__dirname, '../../storage/logos'));
+function getLogoDir() {
+  return path.resolve(
+    process.env.STORAGE_LOGO_DIR ||
+    process.env.FFMS_LOGO_DIR ||
+    (process.env.STORAGE_LOCAL_DIR ? path.join(process.env.STORAGE_LOCAL_DIR, 'logos') : null) ||
+    (process.env.FFMS_DATA_DIR ? path.join(process.env.FFMS_DATA_DIR, 'logos') : null) ||
+    path.resolve(__dirname, '../../storage/logos')
+  );
+}
+
 const DEFAULT_COLLEGE = 'Your College';
 const DEFAULT_SYSTEM = 'Faculty File Management System';
 const DEFAULT_TYPES = 'pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,jpg,jpeg,png,gif,svg,mp4,mov,avi,mp3,wav,zip,rar';
 
 function validLogoPath(value) {
-  return value === '' || value === '/logo.png' ||
-    /^\/brand\/[a-z0-9-]+\.(png|jpg|webp|svg)$/.test(value) ||
-    /^\/api\/public\/logo\/[a-f0-9-]{36}\.(png|jpg|webp|svg)$/.test(value);
+  if (typeof value !== 'string') return false;
+  const clean = value.split('?')[0].trim();
+  return clean === '' || clean === '/logo.png' ||
+    /^\/brand\/[a-z0-9-]+\.(png|jpg|webp|svg)$/.test(clean) ||
+    /^\/api\/public\/logo\/[a-f0-9-]{36}\.(png|jpg|webp|svg)$/.test(clean);
 }
 
 const settingsController = {
@@ -182,10 +193,11 @@ settingsController.uploadLogo = async (req, res) => {
     }
     if (!valid) return res.status(400).json({ error: 'The logo content does not match a safe supported image format.' });
 
-    fs.mkdirSync(LOGO_DIR, { recursive: true });
+    const logoDir = getLogoDir();
+    fs.mkdirSync(logoDir, { recursive: true });
     const normalizedExtension = extension === '.jpeg' ? '.jpg' : extension;
     const filename = `${crypto.randomUUID()}${normalizedExtension}`;
-    fs.writeFileSync(path.join(LOGO_DIR, filename), signature, { flag: 'wx' });
+    fs.writeFileSync(path.join(logoDir, filename), signature, { flag: 'wx' });
     const logoPath = `/api/public/logo/${filename}`;
     let settings = await dbHelper.get('SELECT id FROM system_settings ORDER BY id ASC LIMIT 1');
     if (!settings) {
@@ -218,7 +230,8 @@ settingsController.getLogo = (req, res) => {
   if (!/^[a-f0-9-]{36}\.(png|jpg|webp|svg)$/.test(filename)) {
     return res.status(404).json({ error: 'Logo not found.' });
   }
-  const fullPath = path.join(LOGO_DIR, filename);
+  const logoDir = getLogoDir();
+  const fullPath = path.join(logoDir, filename);
   if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'Logo not found.' });
   const type = path.extname(filename) === '.svg' ? 'image/svg+xml' :
     path.extname(filename) === '.webp' ? 'image/webp' :

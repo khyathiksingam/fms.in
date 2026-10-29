@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
   // Fetch public college settings
   const fetchSettings = useCallback(async () => {
     try {
-      const data = await api.get('/settings/public');
+      const data = await api.publicGet('/settings/public');
       if (data && data.settings) {
         setCollegeSettings(data.settings);
       }
@@ -32,6 +32,22 @@ export function AuthProvider({ children }) {
       console.warn('Failed to load branding settings:', err.message);
     }
   }, []);
+
+  // Listen for dynamic settings update events across the app
+  useEffect(() => {
+    const handleSettingsUpdate = (event) => {
+      if (event?.detail) {
+        setCollegeSettings(event.detail);
+      } else {
+        fetchSettings();
+      }
+    };
+
+    window.addEventListener('college-settings-updated', handleSettingsUpdate);
+    return () => {
+      window.removeEventListener('college-settings-updated', handleSettingsUpdate);
+    };
+  }, [fetchSettings]);
 
   // Check existing token and fetch profile
   const checkAuth = useCallback(async () => {

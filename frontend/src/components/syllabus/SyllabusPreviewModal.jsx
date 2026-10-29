@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Download, ExternalLink, X } from 'lucide-react';
+import { Download, ExternalLink, X, HelpCircle, AlertCircle } from 'lucide-react';
 import { fetchAuthenticatedPdf, setToken } from '../../utils/api';
+import AskDoubtModal from '../discussions/AskDoubtModal';
 
 export default function SyllabusPreviewModal({ record, onClose, onDownload, downloadError }) {
   const dialogRef = useRef(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [error, setError] = useState('');
+  const [doubtModalType, setDoubtModalType] = useState(null); // 'doubt' or 'important_question'
 
   useEffect(() => {
     if (!record) return undefined;
@@ -63,6 +65,26 @@ export default function SyllabusPreviewModal({ record, onClose, onDownload, down
             <p className="text-xs text-slate-500">{record.program} · {record.branch_code} · Semester {record.semester} · {record.regulation}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {/* Ask a Doubt / Important Question */}
+            <button
+              type="button"
+              onClick={() => setDoubtModalType('doubt')}
+              className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 transition"
+              title="Ask a private academic doubt to the faculty uploader"
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Ask Doubt</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDoubtModalType('important_question')}
+              className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300 transition"
+              title="Ask an important question regarding this resource"
+            >
+              <AlertCircle className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Ask Question</span>
+            </button>
+
             {previewUrl && <a href={previewUrl} target="_blank" rel="noreferrer" className="hidden items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 sm:inline-flex dark:border-slate-700 dark:text-slate-200">
               <ExternalLink className="h-4 w-4" /> Open PDF
             </a>}
@@ -73,10 +95,19 @@ export default function SyllabusPreviewModal({ record, onClose, onDownload, down
           </div>
         </header>
         {downloadError && <p role="alert" className="border-b border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200">{downloadError}</p>}
-        {error ? <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-sm text-rose-700 dark:text-rose-300"><p>{error}</p>{error.includes('session expired') && <a href={`/student-login?resourceId=${encodeURIComponent(record.id)}&action=preview`} className="rounded-xl bg-[#16265C] px-4 py-2 font-bold text-white">Sign in again</a>}</div>
+        {error ? <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-sm text-rose-700 dark:text-rose-300"><p>{error}</p>{error.includes('session expired') && <a href={`/student-login?resourceId=${encodeURIComponent(record.id)}&action=preview`} className="btn-primary">Sign in again</a>}</div>
           : previewUrl ? <iframe title={`${record.subject_name} PDF preview`} src={previewUrl} className="min-h-0 flex-1 bg-slate-100 dark:bg-slate-950" />
             : <p className="flex flex-1 items-center justify-center text-sm text-slate-500">Loading secure preview…</p>}
       </section>
+
+      {/* Ask Doubt Modal */}
+      {doubtModalType && (
+        <AskDoubtModal
+          file={record}
+          initialType={doubtModalType}
+          onClose={() => setDoubtModalType(null)}
+        />
+      )}
     </div>
   );
 }

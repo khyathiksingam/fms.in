@@ -1,6 +1,15 @@
-
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": true,
   "rewrites": [
+    {
+      "source": "/faculty-portal",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/faculty-portal/(.*)",
+      "destination": "/index.html"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

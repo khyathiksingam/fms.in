@@ -21,6 +21,7 @@ const syllabusController = require('../controllers/syllabusController');
 const academicRegulationController = require('../controllers/academicRegulationController');
 const studentActivityController = require('../controllers/studentActivityController');
 const hodController = require('../controllers/hodController');
+const discussionController = require('../controllers/discussionController');
 
 function handleLogoUpload(req, res, next) {
   logoUpload.single('logo')(req, res, error => {
@@ -152,5 +153,13 @@ router.get('/notifications', authenticate, notificationController.getNotificatio
 router.patch('/notifications/:id/read', authenticate, notificationController.markAsRead);
 router.patch('/notifications/read-all', authenticate, notificationController.markAllAsRead);
 router.delete('/notifications', authenticate, notificationController.clearNotifications);
+
+// ---------------- Private File Discussions Routes ----------------
+router.post('/discussions', authenticate, discussionController.createDiscussion);
+router.post('/discussions/:id/reply', authenticate, discussionController.postReply);
+router.get('/discussions/:id/messages', authenticate, discussionController.getConversationMessages);
+router.get('/discussions/mine', authenticate, discussionController.getMyConversations);
+router.get('/discussions/file/:fileId', authenticate, discussionController.getConversationsForFile);
+router.patch('/discussions/:id/status', authenticate, discussionController.updateStatus);
 
 module.exports = router;

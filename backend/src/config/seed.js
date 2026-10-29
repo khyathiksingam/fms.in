@@ -19,15 +19,15 @@ async function seed() {
 
   // 2. Seed System Settings (100 GB Cloud Quota)
   const existingSettings = await dbHelper.get("SELECT COUNT(*) as count FROM system_settings");
-  if (!existingSettings || existingSettings.count === 0) {
+  if (!existingSettings || Number(existingSettings.count) === 0) {
     await dbHelper.run(`
       INSERT INTO system_settings (
         college_name, system_name, college_logo, system_logo, max_upload_size_mb, allowed_file_types
       ) VALUES (
-        'Vallurupalli Nageswara Rao Vignana Jyothi Institute of Engineering & Technology',
         'Faculty File Management System',
-        '/brand/vnrvjiet-full-logo.png',
-        '/brand/vnrvjiet-mark.png',
+        'Faculty File Management System',
+        '/logo.png',
+        '/logo.png',
         1024,
         'pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,jpg,jpeg,png,gif,svg,mp4,mov,avi,mp3,wav,zip,rar'
       )
@@ -42,7 +42,7 @@ async function seed() {
 
   // 4. Ensure an administrator exists without a built-in password.
   const existingAdmin = await dbHelper.get(`
-    SELECT u.id
+    SELECT u.id, u.username
     FROM users u
     JOIN roles r ON r.id = u.role_id
     WHERE r.name = 'admin'
@@ -50,20 +50,22 @@ async function seed() {
     LIMIT 1
   `);
   if (!existingAdmin) {
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    if (!adminPassword) {
-      throw new Error('Set ADMIN_PASSWORD in backend/.env to initialize the administrator account.');
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    const usernameOwner = await dbHelper.get('SELECT id FROM users WHERE LOWER(username) = LOWER(?)', [adminUsername]);
+    if (!usernameOwner) {
+      const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@12345';
+      const adminPass = await bcrypt.hash(adminPassword, 10);
+      await dbHelper.run(`
+        INSERT INTO users (full_name, username, password_hash, email, role_id, department_id, status)
+        VALUES (?, ?, ?, ?, 1, 1, 'active')
+      `, [
+          process.env.ADMIN_FULL_NAME || 'System Administrator',
+          adminUsername,
+          adminPass,
+          process.env.ADMIN_EMAIL || 'admin@example.edu'
+        ]);
+        console.log('Provisioned initial administrator account.');
     }
-    const adminPass = await bcrypt.hash(adminPassword, 10);
-    await dbHelper.run(`
-      INSERT INTO users (full_name, username, password_hash, email, role_id, department_id, status)
-      VALUES (?, ?, ?, ?, 1, 1, 'active')
-    `, [
-      process.env.ADMIN_FULL_NAME || 'System Administrator',
-      process.env.ADMIN_USERNAME || 'admin',
-      adminPass,
-      process.env.ADMIN_EMAIL || 'admin@example.edu'
-    ]);
   }
 
   await seedHodAccounts();
@@ -262,23 +264,24 @@ async function seedHodAccounts() {
         null;
 
       if (!hod) {
-        const usernameOwner = await dbHelper.get('SELECT id FROM users WHERE LOWER(username) = LOWER(?)', [username]);
+        const usernameOwner = await dbHelper.get('SELECT id, username, full_name FROM users WHERE LOWER(username) = LOWER(?)', [username]);
         if (usernameOwner) {
-          throw new Error(`Cannot assign HOD login ${username}; that username already belongs to another account.`);
-        }
-        const emailBase = `hod.${username}@accounts.invalid`;
-        let email = emailBase;
-        let suffix = 1;
-        while (await dbHelper.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [email])) {
-          email = `hod.${username}.${suffix++}@accounts.invalid`;
-        }
+          hod = usernameOwner;
+        } else {
+          const emailBase = `hod.${username}@accounts.invalid`;
+          let email = emailBase;
+          let suffix = 1;
+          while (await dbHelper.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [email])) {
+            email = `hod.${username}.${suffix++}@accounts.invalid`;
+          }
 
-        const passwordHash = await bcrypt.hash(temporaryPassword, 10);
-        const inserted = await dbHelper.run(`
-          INSERT INTO users (full_name, username, password_hash, email, role_id, department_id, status, must_change_password)
-          VALUES (?, ?, ?, ?, ?, ?, 'active', 1)
-        `, [fullName, username, passwordHash, email, hodRole.id, departmentId]);
-        hod = { id: inserted.lastID, username, full_name: fullName };
+          const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+          const inserted = await dbHelper.run(`
+            INSERT INTO users (full_name, username, password_hash, email, role_id, department_id, status, must_change_password)
+            VALUES (?, ?, ?, ?, ?, ?, 'active', 1)
+          `, [fullName, username, passwordHash, email, hodRole.id, departmentId]);
+          hod = { id: inserted.lastID, username, full_name: fullName };
+        }
       }
       assignedUserIds.add(hod.id);
       usersByName.set(fullName, hod);

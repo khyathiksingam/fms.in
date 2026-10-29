@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { Building2, Lock, User, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { VNRVJIET_DARK_EMBLEM } from '../utils/branding';
+import { getDisplayedLogo, DEFAULT_FALLBACK_LOGO } from '../utils/branding';
+import ThemeToggle from '../components/common/ThemeToggle';
 
 export default function LoginPage({ onLoginSuccess }) {
   const { login, collegeSettings } = useAuth();
   const { isDark } = useTheme();
-  const collegeLogo = collegeSettings?.college_logo || collegeSettings?.system_logo || '/logo.png';
-  const displayedCollegeLogo = isDark ? VNRVJIET_DARK_EMBLEM : collegeLogo;
-  const collegeName = collegeSettings?.college_name || 'VNRVJIET';
+  const displayedCollegeLogo = getDisplayedLogo(collegeSettings, isDark);
+  const collegeName = collegeSettings?.college_name || 'College Portal';
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -37,14 +37,22 @@ export default function LoginPage({ onLoginSuccess }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-indigo-50/40 to-blue-50/50 p-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="relative flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-slate-950 transition-colors">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md">
         {/* Main Card */}
-        <div className="rounded-3xl border border-slate-200/90 bg-white p-8 text-left shadow-2xl backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900">
+        <div className="app-card p-8 text-left shadow-xl">
           {/* College Header */}
           <div className="text-center">
             <div className={`mx-auto flex h-20 w-20 items-center justify-center overflow-hidden ${isDark ? '' : 'bg-white'}`}>
-              <img src={displayedCollegeLogo} alt={`${collegeName} logo`} className="h-full w-full object-contain" />
+              <img 
+                src={displayedCollegeLogo} 
+                alt={`${collegeName} logo`} 
+                className="h-full w-full object-contain" 
+                onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_LOGO; }}
+              />
             </div>
             <h2 className="mt-4 px-2 text-xs font-extrabold uppercase tracking-wide text-indigo-900 line-clamp-2 dark:text-slate-100">
               {collegeName}
@@ -80,7 +88,7 @@ export default function LoginPage({ onLoginSuccess }) {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="e.g. admin or dr.ravi"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 py-2.5 pl-10 pr-3 text-xs text-slate-900 transition focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:bg-slate-700"
+                  className="app-input pl-10"
                 />
               </div>
             </div>
@@ -98,7 +106,7 @@ export default function LoginPage({ onLoginSuccess }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 py-2.5 pl-10 pr-10 text-xs text-slate-900 transition focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:bg-slate-700"
+                  className="app-input pl-10 pr-10"
                 />
                 <button
                   type="button"
@@ -115,7 +123,7 @@ export default function LoginPage({ onLoginSuccess }) {
             <button
               type="submit"
               disabled={loading}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-600 py-3 text-xs font-bold text-white shadow-lg shadow-indigo-500/25 transition hover:from-blue-800 hover:to-indigo-700 active:scale-[0.98] disabled:opacity-50"
+              className="btn-primary mt-4 w-full py-3 text-xs font-bold"
             >
               {loading ? 'Authenticating...' : 'Sign In to FFMS'}
               <ArrowRight className="h-4 w-4" />
@@ -124,7 +132,7 @@ export default function LoginPage({ onLoginSuccess }) {
         </div>
 
         <p className="mt-4 text-center text-xs font-medium text-slate-500 dark:text-slate-400">
-          <a href="/syllabus" className="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200">
+          <a href="/syllabus" className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400">
             Browse the student syllabus library
           </a>
         </p>

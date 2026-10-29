@@ -1,12 +1,12 @@
 .syllabus-page {
-  --syllabus-navy: #16265c;
-  --syllabus-blue: #2846c7;
-  --syllabus-gold: #f4b64e;
-  --syllabus-shadow: 0 18px 42px -26px rgb(22 38 92 / 38%), 0 7px 18px -12px rgb(40 70 199 / 24%);
+  --syllabus-navy: var(--color-primary-dark, #1e3a8a);
+  --syllabus-blue: var(--color-primary, #1d4ed8);
+  --syllabus-gold: var(--color-warning, #f59e0b);
+  --syllabus-shadow: var(--shadow-card);
 }
 
 .syllabus-header {
-  box-shadow: 0 7px 24px -20px rgb(22 38 92 / 38%);
+  box-shadow: 0 4px 20px -10px rgb(0 0 0 / 10%);
 }
 
 .syllabus-icon-button {
@@ -15,19 +15,18 @@
   height: 40px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #dce3f0;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #fff, #f3f6fc);
-  color: var(--syllabus-navy);
-  box-shadow: 0 4px 10px -8px rgb(22 38 92 / 50%), inset 0 1px 0 rgb(255 255 255 / 95%);
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl, 12px);
+  background: var(--color-surface);
+  color: var(--color-text-main);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  transition: all 160ms ease;
 }
 
 .dark .syllabus-icon-button {
-  border-color: #33415f;
-  background: linear-gradient(145deg, #1e2a46, #151d32);
+  border-color: var(--color-border);
+  background: var(--color-surface);
   color: #f4c876;
-  box-shadow: 0 4px 10px -8px #000, inset 0 1px 0 rgb(255 255 255 / 8%);
 }
 
 .syllabus-portal-button {
@@ -37,14 +36,14 @@
   justify-content: center;
   gap: 0.5rem;
   border: 1px solid rgb(255 255 255 / 24%);
-  border-radius: 12px;
-  background: linear-gradient(135deg, #3949ab 0%, #2846c7 52%, #6941c6 100%);
+  border-radius: var(--radius-xl, 12px);
+  background: var(--gradient-brand);
   padding: 0.6rem 1rem;
   color: #fff;
   font-size: 0.8rem;
   font-weight: 750;
-  box-shadow: 0 9px 18px -12px rgb(40 70 199 / 80%), inset 0 1px 0 rgb(255 255 255 / 22%);
-  transition: box-shadow 160ms ease, filter 160ms ease, transform 160ms ease;
+  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.28);
+  transition: all 160ms ease;
 }
 
 .syllabus-desktop-portal {
@@ -71,17 +70,23 @@
 }
 
 .syllabus-portal-button:hover {
-  filter: brightness(1.07);
-  box-shadow: 0 13px 22px -13px rgb(40 70 199 / 85%), inset 0 1px 0 rgb(255 255 255 / 25%);
-  transform: translateY(-2px);
+  background: var(--gradient-brand-hover);
+  box-shadow: 0 6px 20px 0 rgba(37, 99, 235, 0.38);
+  transform: translateY(-1px);
 }
 
 .syllabus-hero {
   isolation: isolate;
+  border-radius: var(--radius-3xl, 1.5rem);
   border: 1px solid rgb(255 255 255 / 19%);
-  background:
-    linear-gradient(116deg, rgb(22 38 92 / 98%) 0%, rgb(32 54 139 / 96%) 52%, rgb(40 70 199 / 96%) 100%);
-  box-shadow: 0 28px 55px -32px rgb(22 38 92 / 60%), 0 12px 28px -22px rgb(40 70 199 / 50%);
+  background: var(--gradient-brand);
+  box-shadow: 0 20px 40px -20px rgba(29, 78, 216, 0.35);
+}
+
+.dark .syllabus-hero {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  border-color: #1e293b;
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.6);
 }
 
 .syllabus-hero::before {

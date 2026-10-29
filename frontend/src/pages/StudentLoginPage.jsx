@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, LockKeyhole, UserRound, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { api, setToken } from '../utils/api';
 import { useTheme } from '../context/ThemeContext';
-import { VNRVJIET_DARK_EMBLEM } from '../utils/branding';
+import { getDisplayedLogo, DEFAULT_FALLBACK_LOGO } from '../utils/branding';
+import RoleBadge from '../components/common/RoleBadge';
+import ThemeToggle from '../components/common/ThemeToggle';
 
 export default function StudentLoginPage() {
   const { isDark } = useTheme();
   const params = new URLSearchParams(window.location.search);
   const resourceId = params.get('resourceId') || '';
   const action = params.get('action') === 'download' ? 'download' : 'preview';
+  const [collegeSettings, setCollegeSettings] = useState(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,6 +32,7 @@ export default function StudentLoginPage() {
     api.publicGet('/settings/public')
       .then(res => {
         if (res?.settings) {
+          setCollegeSettings(res.settings);
           setSelfRegistrationEnabled(Boolean(res.settings.student_self_registration));
         }
       })
@@ -91,41 +95,57 @@ export default function StudentLoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f4f6fb] p-4 dark:bg-slate-950">
-      <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-7 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+    <main className="relative flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-slate-950 transition-colors">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+
+      <section className="app-card w-full max-w-md p-7 shadow-xl">
         <button
           type="button"
           onClick={() => navigate('/syllabus')}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-[#2846C7] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-blue-300"
+          className="inline-flex items-center gap-2 text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400 hover:underline cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4" /> Back to Syllabus Library
         </button>
 
         <div className="mt-6 text-center">
-          <img src={isDark ? VNRVJIET_DARK_EMBLEM : '/branding/vnrvjiet-emblem.png'} alt="VNRVJIET emblem" className="mx-auto h-16 w-16 object-contain" />
-          <p className="mt-3 text-xs font-extrabold tracking-widest text-[#16265C] dark:text-slate-100">VNRVJIET</p>
+          <div className="mx-auto flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white p-1 border border-slate-200 dark:border-slate-800 dark:bg-slate-900">
+            <img 
+              src={getDisplayedLogo(collegeSettings, isDark)} 
+              alt={`${collegeSettings?.college_name || 'College'} logo`} 
+              className="h-full w-full object-contain" 
+              onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_LOGO; }}
+            />
+          </div>
+          <p className="mt-3 text-xs font-extrabold tracking-wider text-slate-700 dark:text-slate-300 uppercase truncate">
+            {collegeSettings?.college_name || 'College Portal'}
+          </p>
           <h1 className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-white">Student Login</h1>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Sign in with your registered college roll number or email.</p>
+          <div className="mt-2 flex justify-center">
+            <RoleBadge role="student" />
+          </div>
+          <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">Sign in with your registered college roll number or email.</p>
         </div>
 
         {resourceId && (
-          <p className="mt-5 rounded-xl bg-blue-50 p-3 text-sm text-blue-900 dark:bg-blue-950/50 dark:text-blue-100">
+          <p className="mt-4 rounded-xl border border-brand-200 bg-brand-50 p-3 text-xs text-brand-900 dark:border-brand-900 dark:bg-brand-950/50 dark:text-brand-100">
             Sign in to continue to the selected resource.
           </p>
         )}
 
         {error && (
-          <div role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
-            <p className="font-semibold">{error}</p>
+          <div role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+            <p>{error}</p>
             {unverifiedAccount && (
-              <div className="mt-3 border-t border-rose-200 pt-3 dark:border-rose-900">
+              <div className="mt-2.5 border-t border-rose-200 pt-2.5 dark:border-rose-900">
                 <button
                   type="button"
                   onClick={handleResendVerification}
                   disabled={resending}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50"
+                  className="btn-danger text-xs py-1 px-2.5"
                 >
-                  <RefreshCw className={`h-3.5 w-3.5 ${resending ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-3 w-3 ${resending ? 'animate-spin' : ''}`} />
                   {resending ? 'Sending OTP…' : 'Resend OTP'}
                 </button>
               </div>
@@ -143,9 +163,11 @@ export default function StudentLoginPage() {
         )}
 
         <form onSubmit={submit} className="mt-5 space-y-4">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-            Roll number or college email
-            <span className="relative mt-1 block">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+              Roll number or college email
+            </label>
+            <div className="relative mt-1">
               <UserRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 required
@@ -153,14 +175,16 @@ export default function StudentLoginPage() {
                 value={username}
                 onChange={event => setUsername(event.target.value)}
                 placeholder="e.g. 22071A0501 or student@vnrvjiet.in"
-                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-3 focus-visible:outline-2 focus-visible:outline-[#2846C7] dark:border-slate-700 dark:bg-slate-800"
+                className="app-input pl-9"
               />
-            </span>
-          </label>
+            </div>
+          </div>
 
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-            Password
-            <span className="relative mt-1 block">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+              Password
+            </label>
+            <div className="relative mt-1">
               <LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 required
@@ -168,15 +192,16 @@ export default function StudentLoginPage() {
                 autoComplete="current-password"
                 value={password}
                 onChange={event => setPassword(event.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-3 focus-visible:outline-2 focus-visible:outline-[#2846C7] dark:border-slate-700 dark:bg-slate-800"
+                placeholder="••••••••"
+                className="app-input pl-9"
               />
-            </span>
-          </label>
+            </div>
+          </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-[#16265C] px-4 py-3 font-bold text-white hover:bg-[#2846C7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4B64E] disabled:opacity-60 cursor-pointer"
+            className="btn-primary w-full py-2.5 text-xs font-bold mt-2"
           >
             {loading ? 'Signing in…' : 'Sign in to Student Library'}
           </button>
@@ -188,7 +213,7 @@ export default function StudentLoginPage() {
             <button
               type="button"
               onClick={() => navigate('/student-register')}
-              className="font-bold text-[#2846C7] hover:underline focus-visible:outline-2 dark:text-blue-300 cursor-pointer"
+              className="font-bold text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-400 cursor-pointer"
             >
               Create Student Account
             </button>

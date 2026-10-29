@@ -36,7 +36,8 @@ The public department and faculty directories are available at `/college-departm
 ## 🚀 Quick Start
 
 ### 1. Prerequisites
-- Node.js (v20.19+ or v22.12+)
+- Node.js 22 LTS
+- PostgreSQL 15+ database
 - npm
 
 ### 2. Installation
@@ -54,13 +55,22 @@ npm install
 cd ..
 ```
 
-### 3. Build & Run
+### 3. Run Scripts
 ```bash
-# Build frontend assets
-npm run build --prefix frontend
+# Run database migrations
+npm run migrate
 
-# Start backend server
-node backend/src/server.js
+# Run development server
+npm run dev
+
+# Run automated test suite
+npm test
+
+# Build frontend production bundle
+npm run build
+
+# Start production server
+npm start
 ```
 
 The API is a separate Express process; Vercel serves the frontend and does not
@@ -69,50 +79,22 @@ the Vite development proxy forwards to `http://localhost:5000`. For production,
 set the Vercel project's `VITE_API_BASE_URL` build environment variable to the
 actual public backend origin. The value may be the origin alone or may end in
 `/api`; the shared API URL builder normalizes it to exactly one `/api` prefix.
-Get the hostname from the backend hosting service; do not use a guessed URL.
-Redeploy the frontend after changing this variable. It is public configuration
-and must not contain secrets.
 
-The frontend calls these API routes:
+### Deploy the Node.js 22 Express backend with PostgreSQL
 
-| Feature | Request |
-| --- | --- |
-| Syllabus filters | `GET /api/public/syllabus/filters` |
-| Syllabus departments and catalogue metadata | `GET /api/public/syllabus/master-data` |
-| Published syllabus resources | `GET /api/public/syllabus` |
-| Department browser | `GET /api/public/departments` |
-| Student login | `POST /api/auth/student-login` |
-| Preview / download | `GET /api/public/syllabus/:id/preview` and `/download` (Bearer token required) |
-
-`/syllabus/departments` is a frontend page route, not an API route.
-
-### Deploy the existing Express backend with persistent storage
-
-The root `render.yaml` deploys this existing Express server to Render with a
-persistent disk mounted at `/var/data`. It stores the SQLite database there and
-configures separate persistent upload and logo directories. It is a single
-backend instance; do not scale it horizontally while using the local SQLite
-database.
+The root `render.yaml` deploys the Node.js 22 Express server to Render with managed PostgreSQL
+and a persistent disk mounted at `/var/data` for uploads and logos.
 
 1. In Render, create a Blueprint from this repository using `render.yaml`.
-2. Obtain the actual public service origin assigned by Render. This project
-   does not assume or prescribe a backend hostname.
-3. Configure backend service variables:
-   - `JWT_SECRET`: generate a strong secret; the supplied Render Blueprint
-     generates one.
-   - `CORS_ORIGINS`: exact Vercel frontend origin(s), comma-separated if more
-     than one. Origins do not include a path such as `/api`.
-   - `FFMS_DATA_DIR=/var/data`, `FFMS_STORAGE_DIR=/var/data/uploads`, and
-     `FFMS_LOGO_DIR=/var/data/logos` for the persistent disk in the Blueprint.
-   - `ADMIN_PASSWORD` is required only to initialize an administrator on a
-     new database. Set `FFMS_HOD_TEMP_PASSWORD` if provisioning HOD accounts.
-     Configure `BREVO_API_KEY`, `EMAIL_FROM`, and `EMAIL_FROM_NAME` if student
-     email verification is required.
-4. In Vercel, set the Production environment variable
-   `VITE_API_BASE_URL` to the actual backend origin returned by Render, with or
-   without a trailing `/api`; the client normalizes it. This is a build-time
-   variable, so redeploy after changing it. Ensure Vercel Deployment
-   Protection does not block the public production frontend/API requests.
+2. Configure backend service variables:
+   - `DATABASE_URL`: managed PostgreSQL connection string with SSL mode.
+   - `JWT_SECRET`: generate a strong secret (at least 32 characters).
+   - `CORS_ALLOWED_ORIGINS`: exact Vercel frontend origin(s), comma-separated.
+   - `STORAGE_PROVIDER=local`, `STORAGE_UPLOAD_DIR=/var/data/uploads`, and `STORAGE_LOGO_DIR=/var/data/logos`.
+   - `ADMIN_PASSWORD` is used only to initialize an administrator on a new database.
+   - `EMAIL_PROVIDER_API_KEY`, `EMAIL_FROM`, and `EMAIL_FROM_NAME` for student email verification OTPs.
+3. In Vercel, set the Production environment variable
+   `VITE_API_BASE_URL` to the actual backend origin returned by Render.
 5. Before serving existing resources, migrate the existing SQLite database
    and matching uploaded files to the persistent disk using a trusted,
    authorized transfer. A new Render disk starts empty; this deployment

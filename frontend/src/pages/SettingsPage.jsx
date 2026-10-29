@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Settings, Building2, Shield, Save, CheckCircle2, Sliders, HardDrive, FileType, Upload, UserCheck } from 'lucide-react';
 import { api, apiRequest } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { getDisplayedLogo, DEFAULT_FALLBACK_LOGO } from '../utils/branding';
 
 export default function SettingsPage() {
   const { isAdmin, collegeSettings, refreshSettings } = useAuth();
@@ -42,9 +43,12 @@ export default function SettingsPage() {
     try {
       const body = new FormData();
       body.append('logo', logoFile);
-      await apiRequest('/settings/logo', { method: 'POST', body });
+      const res = await apiRequest('/settings/logo', { method: 'POST', body });
       setLogoFile(null);
       setMessage('College logo updated successfully.');
+      if (res?.settings && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('college-settings-updated', { detail: res.settings }));
+      }
       await refreshSettings();
     } catch (err) {
       setError(err.message || 'Failed to upload college logo.');
@@ -80,7 +84,7 @@ export default function SettingsPage() {
     setMessage('');
 
     try {
-      await api.put('/settings', {
+      const res = await api.put('/settings', {
         college_name: collegeName.trim(),
         system_name: systemName.trim(),
         max_upload_size_mb: Number(maxUploadSize),
@@ -89,6 +93,9 @@ export default function SettingsPage() {
       });
 
       setMessage('College branding & system settings updated successfully.');
+      if (res?.settings && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('college-settings-updated', { detail: res.settings }));
+      }
       refreshSettings();
     } catch (err) {
       setError(err.message || 'Failed to update settings.');
@@ -166,10 +173,10 @@ export default function SettingsPage() {
             </label>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <img
-                src={collegeSettings?.college_logo || '/brand/vnrvjiet-full-logo.png'}
+                src={getDisplayedLogo(collegeSettings, false)}
                 alt="Current header logo"
                 className="h-12 w-52 rounded-xl border border-slate-200 bg-white object-contain p-1 dark:border-slate-700"
-                onError={event => { event.currentTarget.src = '/brand/vnrvjiet-full-logo.png'; }}
+                onError={event => { event.currentTarget.src = DEFAULT_FALLBACK_LOGO; }}
               />
               <input
                 type="file"
@@ -184,7 +191,7 @@ export default function SettingsPage() {
                 </button>
               )}
             </div>
-            <p className="mt-2 text-[11px] text-slate-400">The uploaded image is validated and stored under a server-generated path. It appears as the wide Syllabus Books header logo; the compact VNRVJIET mark remains available for portal icons.</p>
+            <p className="mt-2 text-[11px] text-slate-400">The uploaded image is validated and stored securely in durable persistent storage. It will update the header, navigation, and login branding across all pages in both light and dark modes.</p>
           </div>
         </div>
 
@@ -259,7 +266,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={handleToggleStudentSelfRegistration}
                   disabled={saving}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#2846C7] focus:ring-offset-2 disabled:opacity-50 ${studentSelfRegistration ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 ${studentSelfRegistration ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'}`}
                   role="switch"
                   aria-checked={studentSelfRegistration}
                 >

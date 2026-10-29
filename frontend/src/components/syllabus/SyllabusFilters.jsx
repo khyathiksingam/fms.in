@@ -48,7 +48,7 @@ export default function SyllabusFilters({ value, onChange, subjects }) {
               value={value[key]}
               disabled={disabled}
               onChange={e => onChange(key, e.target.value)}
-              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#31519e] focus:ring-2 focus:ring-[#31519e]/15 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="">{disabled ? 'Choose the previous filter first' : `All ${label.toLowerCase()}s`}</option>
               {options.map(option => {

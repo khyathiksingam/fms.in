@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { api, getToken } from '../utils/api';
 import { formatBytes, formatDate, formatRelativeTime } from '../utils/formatters';
 import { getFileIcon } from '../components/files/FileCard';
+import RoleBadge from '../components/common/RoleBadge';
 
 export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile }) {
   const { user, isAdmin, isHOD, isFaculty } = useAuth();
@@ -51,30 +52,21 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
 
   return (
     <div className="space-y-6 text-left">
-      {/* Welcome Hero Banner - Adaptive Dark/Light Mode */}
-      <div className={`relative overflow-hidden rounded-3xl p-6 sm:p-8 text-white transition-all duration-300 ${
-        isDark 
-          ? 'bg-slate-900 border border-slate-800 shadow-2xl shadow-black/60 ring-1 ring-white/5' 
-          : 'bg-linear-to-r from-blue-700 via-indigo-600 to-blue-600 shadow-xl shadow-indigo-500/20'
-      }`}>
+      {/* Welcome Hero Banner - Shared Design System */}
+      <div className="app-hero relative overflow-hidden rounded-3xl p-6 sm:p-8 text-white">
         <div className="relative z-10">
-          <div className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-bold border transition ${
-            isDark 
-              ? 'bg-slate-800/90 text-indigo-300 border-slate-700' 
-              : 'bg-white/20 text-white border-white/20 backdrop-blur-md'
-          }`}>
-            <Shield className={`h-3.5 w-3.5 ${isDark ? 'text-indigo-400' : 'text-white'}`} />
-            <span className="uppercase tracking-wider">{user?.role_name || 'FACULTY'} PORTAL</span>
-            {user?.department_name && <span>• {user.department_name}</span>}
+          <div className="flex items-center gap-2 mb-2">
+            <RoleBadge
+              role={user?.role_name || (isAdmin ? 'admin' : isHOD ? 'hod' : 'faculty')}
+              departmentCode={user?.department_code}
+            />
           </div>
 
-          <h2 className="mt-3 text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm">
+          <h2 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm">
             Welcome, {user?.full_name}
           </h2>
 
-          <p className={`mt-1 max-w-xl text-xs sm:text-sm leading-relaxed font-normal ${
-            isDark ? 'text-slate-300' : 'text-blue-100'
-          }`}>
+          <p className="mt-1 max-w-xl text-xs sm:text-sm leading-relaxed font-normal text-white/80">
             {isAdmin 
               ? 'Complete administrative authority over college documents, departments, faculty accounts, and storage analytics.'
               : isHOD 
@@ -86,22 +78,14 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               onClick={onUploadClick}
-              className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold shadow-lg transition active:scale-95 cursor-pointer ${
-                isDark
-                  ? 'bg-linear-to-r from-blue-600 via-indigo-600 to-blue-600 text-white border border-indigo-500/40 shadow-indigo-600/25 hover:from-blue-500 hover:to-indigo-500'
-                  : 'bg-white text-indigo-950 border border-white hover:bg-blue-50'
-              }`}
+              className="btn-accent px-5 py-2.5 text-xs font-extrabold flex items-center gap-2"
             >
-              <Upload className={`h-4 w-4 stroke-[2.5] ${isDark ? 'text-white' : 'text-indigo-700'}`} />
-              <span className="font-bold">+ Upload File</span>
+              <Upload className="h-4 w-4 stroke-[2.5]" />
+              <span>+ Upload File</span>
             </button>
             <button
               onClick={() => onNavigate('/files')}
-              className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold transition active:scale-95 cursor-pointer border ${
-                isDark
-                  ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-750 hover:text-white'
-                  : 'bg-white/20 text-white border-white/30 hover:bg-white/30 backdrop-blur-md'
-              }`}
+              className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold transition active:scale-95 cursor-pointer bg-white/15 text-white border border-white/25 hover:bg-white/25 backdrop-blur-md"
             >
               <span>Browse Files</span>
               <ArrowRight className="h-3.5 w-3.5 text-white" />
@@ -110,12 +94,8 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
         </div>
 
         {/* Decorative background accents */}
-        <div className={`absolute -right-12 -top-12 h-64 w-64 rounded-full blur-3xl pointer-events-none ${
-          isDark ? 'bg-indigo-600/10' : 'bg-white/10'
-        }`} />
-        <div className={`absolute right-32 -bottom-16 h-48 w-48 rounded-full blur-2xl pointer-events-none ${
-          isDark ? 'bg-blue-600/10' : 'bg-indigo-400/20'
-        }`} />
+        <div className="absolute -right-12 -top-12 h-64 w-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+        <div className="absolute right-32 -bottom-16 h-48 w-48 rounded-full bg-blue-400/20 blur-2xl pointer-events-none" />
       </div>
 
       {/* KPI Statistic Cards Grid */}

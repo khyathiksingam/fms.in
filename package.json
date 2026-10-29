@@ -4,12 +4,17 @@
   "description": "Faculty File Management System (FFMS) - College Document Management Platform",
   "main": "backend/src/server.js",
   "scripts": {
-    "build": "npm --prefix frontend install && npm --prefix frontend run build",
+    "dev": "node backend/src/server.js",
     "start": "node backend/src/server.js",
     "server": "node backend/src/server.js",
+    "migrate": "node backend/src/config/migrate.js",
+    "build": "npm --prefix frontend install && npm --prefix frontend run build",
     "admin:reset-password": "node backend/scripts/resetAdminPassword.js",
     "frontend:dev": "npm run dev --prefix frontend",
-    "frontend:build": "npm run build --prefix frontend"
+    "frontend:build": "npm run build --prefix frontend",
+    "test": "node backend/test/test_db_migrations.js && node backend/test/test_password_persistence.js && node backend/test/test_logo_persistence.js && node backend/test/test_hod_seed.js && node backend/test/test_admin_password_reset.js && node backend/test/test_discussions_privacy.js && node backend/test/test_env_validation.js && npm test --prefix frontend",
+    "test:backend": "node backend/test/test_db_migrations.js && node backend/test/test_password_persistence.js && node backend/test/test_logo_persistence.js && node backend/test/test_hod_seed.js && node backend/test/test_admin_password_reset.js && node backend/test/test_discussions_privacy.js && node backend/test/test_env_validation.js",
+    "test:frontend": "npm test --prefix frontend"
   },
   "keywords": [
     "file-management",
@@ -29,8 +34,12 @@
     "multer": "^2.0.2",
     "nodemailer": "^10.0.15",
     "pdf-parse": "^1.1.4",
+    "pg": "^8.23.1",
     "sql.js": "^1.14.1",
     "tesseract.js": "^7.0.0",
     "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "pg-mem": "^3.0.14"
   }
 }

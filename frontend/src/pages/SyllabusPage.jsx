@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, BookOpen, GraduationCap, LibraryBig, LoaderCircle, Menu, Moon, Search, Sun, X } from 'lucide-react';
+import { ArrowRight, BookOpen, GraduationCap, LibraryBig, LoaderCircle, Menu, Moon, Search, Sun, X, HelpCircle } from 'lucide-react';
 import { api, fetchAuthenticatedPdf, getToken, setToken } from '../utils/api';
 import { useTheme } from '../context/ThemeContext';
 import './SyllabusPage.css';
@@ -7,7 +7,7 @@ import SyllabusFilters from '../components/syllabus/SyllabusFilters';
 import SyllabusBrowseControls from '../components/syllabus/SyllabusBrowseControls';
 import SyllabusSubjectCard from '../components/syllabus/SyllabusSubjectCard';
 import SyllabusPreviewModal from '../components/syllabus/SyllabusPreviewModal';
-import { VNRVJIET_DARK_EMBLEM } from '../utils/branding';
+import { getDisplayedLogo, DEFAULT_FALLBACK_LOGO } from '../utils/branding';
 
 const EMPTY_FILTERS = {
   program: '',
@@ -35,6 +35,7 @@ function groupByRegulationAndYear(records) {
 
 export default function SyllabusPage({ studentView = false, departmentBrowserView = false }) {
   const { isDark, toggleTheme } = useTheme();
+  const [collegeSettings, setCollegeSettings] = useState(null);
   const [catalogFilters, setCatalogFilters] = useState(null);
   const [masterData, setMasterData] = useState(null);
   const [masterDataError, setMasterDataError] = useState('');
@@ -96,6 +97,11 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
   }, [studentView, studentSessionLoading, studentSession]);
 
   useEffect(() => {
+    api.publicGet('/settings/public')
+      .then(res => {
+        if (res?.settings) setCollegeSettings(res.settings);
+      })
+      .catch(() => {});
     api.publicGet('/public/syllabus/filters')
       .then(setCatalogFilters)
       .catch(err => setError(err.status === 404
@@ -281,14 +287,19 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
   }
 
   return (
-    <div className="syllabus-page min-h-screen bg-[#f4f6fb] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <header className="syllabus-header sticky top-0 z-30 border-b border-[#dbe2f0] bg-white/95 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/95">
+    <div className="syllabus-page min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      <header className="syllabus-header sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/95">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <a href="/syllabus" className="flex min-w-0 items-center gap-3" aria-label="VNRVJIET Syllabus Library">
-            <img src={isDark ? VNRVJIET_DARK_EMBLEM : '/branding/vnrvjiet-emblem.png'} alt="VNRVJIET emblem" className="h-11 w-11 shrink-0 object-contain sm:h-12 sm:w-12" />
+          <a href="/syllabus" className="flex min-w-0 items-center gap-3" aria-label={`${collegeSettings?.college_name || 'College'} Syllabus Library`}>
+            <img 
+              src={getDisplayedLogo(collegeSettings, isDark)} 
+              alt={`${collegeSettings?.college_name || 'College'} emblem`} 
+              className="h-11 w-11 shrink-0 object-contain sm:h-12 sm:w-12" 
+              onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_LOGO; }}
+            />
             <span className="min-w-0">
-              <span className="block text-[10px] font-extrabold tracking-wide text-[#16265C] dark:text-white sm:text-sm">VNRVJIET</span>
-              <span className="block truncate text-sm font-bold text-[#16265C] dark:text-white sm:text-xs sm:font-semibold sm:text-slate-600 sm:dark:text-slate-300">Syllabus Library</span>
+              <span className="block text-[10px] font-extrabold tracking-wide text-slate-900 dark:text-white sm:text-sm">{collegeSettings?.college_name || 'College Portal'}</span>
+              <span className="block truncate text-sm font-bold text-slate-900 dark:text-white sm:text-xs sm:font-semibold sm:text-slate-600 sm:dark:text-slate-300">Syllabus Library</span>
             </span>
           </a>
           <div className="flex items-center gap-2">
@@ -297,9 +308,12 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
             </button>
             {studentSession ? (
               <>
-                <span title={studentSession.full_name || studentSession.name || 'Student'} aria-label={`Welcome, ${studentSession.full_name || studentSession.name || 'Student'}`} className="max-w-[38vw] break-words rounded-xl border border-[#dbe2f0] bg-[#f6f8ff] px-2 py-1.5 text-right text-[10px] font-bold leading-tight text-[#16265C] dark:border-slate-700 dark:bg-slate-800 dark:text-white sm:max-w-none sm:whitespace-nowrap sm:px-3 sm:text-xs">
+                <span title={studentSession.full_name || studentSession.name || 'Student'} aria-label={`Welcome, ${studentSession.full_name || studentSession.name || 'Student'}`} className="max-w-[38vw] break-words rounded-xl border border-slate-200 bg-blue-50/70 px-2 py-1.5 text-right text-[10px] font-bold leading-tight text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white sm:max-w-none sm:whitespace-nowrap sm:px-3 sm:text-xs">
                   Welcome, {studentSession.full_name || studentSession.name || 'Student'}
                 </span>
+                <a href="/my-doubts" className="syllabus-portal-button cursor-pointer inline-flex items-center gap-1 text-xs">
+                  <HelpCircle className="h-3.5 w-3.5" /> My Doubts
+                </a>
                 <button type="button" onClick={logoutStudent} className="syllabus-portal-button cursor-pointer">Sign out</button>
               </>
             ) : <button type="button" onClick={() => navigate('/student-login')} className="syllabus-portal-button cursor-pointer">Student Login</button>}
@@ -333,28 +347,28 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
           <div className="syllabus-hero-plane" aria-hidden="true" />
           <div className="syllabus-hero-grid" aria-hidden="true" />
           <div className="relative z-10 max-w-3xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#F4B64E]/60 bg-white/10 px-3 py-1 text-xs font-bold text-[#ffe1a4]"><LibraryBig className="h-4 w-4" /> ACADEMIC DOCUMENTS</span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/60 bg-white/10 px-3 py-1 text-xs font-bold text-amber-200"><LibraryBig className="h-4 w-4" /> ACADEMIC DOCUMENTS</span>
             <h1 className="mt-5 text-3xl font-extrabold tracking-tight sm:text-5xl">Find your syllabus</h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-blue-100 sm:text-base">Search published course syllabi by subject, code, branch, regulation, or semester.</p>
             <label className="syllabus-search mt-7 flex items-center gap-3 rounded-2xl p-2.5 text-slate-800">
-              <Search className="ml-2 h-5 w-5 shrink-0 text-[#2846C7]" />
+              <Search className="ml-2 h-5 w-5 shrink-0 text-blue-600" />
               <input aria-label="Search syllabi" type="search" value={search} onChange={event => { setSearch(event.target.value); setPage(1); setLoading(true); }} placeholder="Subject name, code, branch, regulation, semester..." className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-slate-500 sm:text-base" />
-              {search && <button type="button" onClick={() => { setSearch(''); setLoading(true); }} className="rounded-lg px-3 py-2 text-xs font-bold text-[#16265C] hover:bg-[#fff7e9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2846C7]">Clear</button>}
+              {search && <button type="button" onClick={() => { setSearch(''); setLoading(true); }} className="rounded-lg px-3 py-2 text-xs font-bold text-blue-900 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Clear</button>}
             </label>
           </div>
-          <GraduationCap className="syllabus-cap absolute -bottom-12 -right-8 h-64 w-64 text-[#F4B64E]/15" aria-hidden="true" />
+          <GraduationCap className="syllabus-cap absolute -bottom-12 -right-8 h-64 w-64 text-amber-300/15" aria-hidden="true" />
         </section>}
 
         {!studentView && !departmentBrowserView && (
           <a
             href="/syllabus/departments"
-            className="group flex items-center justify-between gap-4 rounded-2xl border border-[#dbe2f0] bg-white p-4 shadow-sm transition hover:border-[#9aaeea] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2846C7] dark:border-slate-800 dark:bg-slate-900 sm:p-5"
+            className="group flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:border-slate-800 dark:bg-slate-900 sm:p-5"
           >
             <span className="min-w-0">
-              <span className="block text-base font-extrabold text-[#16265C] dark:text-white">Browse Departments</span>
+              <span className="block text-base font-extrabold text-slate-900 dark:text-white">Browse Departments</span>
               <span className="mt-1 block text-sm text-slate-600 dark:text-slate-300">Explore published resources by department.</span>
             </span>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#edf2ff] text-[#2846C7] transition group-hover:translate-x-0.5 dark:bg-slate-800 dark:text-[#aebfff]">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 transition group-hover:translate-x-0.5 dark:bg-slate-800 dark:text-blue-300">
               <ArrowRight className="h-5 w-5" />
             </span>
           </a>
@@ -364,7 +378,7 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
           <section className="syllabus-filter-panel space-y-4 rounded-3xl p-4 sm:p-6" aria-labelledby="filters-heading">
             <div className="flex flex-wrap items-start justify-between gap-3">
               {!departmentBrowserView && <div>
-                <h2 id="filters-heading" className="font-extrabold text-[#16265C] dark:text-white">
+                <h2 id="filters-heading" className="font-extrabold text-slate-900 dark:text-white">
                   Browse by curriculum
                 </h2>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
@@ -372,7 +386,7 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
                 </p>
               </div>}
               {departmentBrowserView && (
-                <a href="/syllabus" className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#16265C] transition hover:border-[#2846C7] hover:bg-[#f4f6ff] dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                <a href="/syllabus" className="btn-secondary text-xs">
                   <ArrowRight className="h-4 w-4 rotate-180" /> Syllabus Library
                 </a>
               )}
@@ -410,15 +424,15 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
             )}
             {catalogFilters && (
               <div className="border-t border-slate-200 pt-4 dark:border-slate-700">
-                <h3 className="mb-3 text-sm font-bold text-[#16265C] dark:text-white">Refine by semester and subject</h3>
+                <h3 className="mb-3 text-sm font-bold text-slate-900 dark:text-white">Refine by semester and subject</h3>
                 <SyllabusFilters value={selected} onChange={handleFilterChange} subjects={catalogFilters.subjects || []} />
               </div>
             )}
               </>
             )}
             {selectedRegulation && (
-              <aside className="rounded-2xl border border-[#F4B64E]/70 bg-white/80 p-4 shadow-sm dark:border-amber-800 dark:bg-slate-900/80" aria-live="polite">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#2846C7] dark:text-blue-300">{selectedRegulation.code} ? Academic Regulation</p>
+              <aside className="rounded-2xl border border-amber-400/70 bg-white/80 p-4 shadow-sm dark:border-amber-800 dark:bg-slate-900/80" aria-live="polite">
+                <p className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">{selectedRegulation.code} • Academic Regulation</p>
                 <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">Effective from: {selectedRegulation.effective_from || 'See regulation details'}</p>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{selectedRegulation.description || 'Regulation details are maintained by the college.'}</p>
                 <p className="mt-2 text-xs font-bold text-slate-500 dark:text-slate-400">{selectedRegulation.document_count || 0} published resources</p>
@@ -437,19 +451,19 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
               ['syllabus', 'Syllabus Books'],
               ['notes', 'Faculty Notes']
             ].map(([tab, label]) => (
-              <button key={tab} type="button" role="tab" aria-selected={resourceTab === tab} onClick={() => { setResourceTab(tab); setPage(1); setLoading(true); }} className={`rounded-full border px-4 py-2 text-xs font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2846C7] ${resourceTab === tab ? 'border-[#16265C] bg-[#16265C] text-white' : 'border-slate-300 bg-white text-[#16265C] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'}`}>{label}</button>
+              <button key={tab} type="button" role="tab" aria-selected={resourceTab === tab} onClick={() => { setResourceTab(tab); setPage(1); setLoading(true); }} className={`rounded-full border px-4 py-2 text-xs font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${resourceTab === tab ? 'bg-blue-900 border-blue-900 text-white' : 'border-slate-300 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'}`}>{label}</button>
             ))}
           </div>
           {error && <div role="alert" className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200">{error}</div>}
           {loading ? (
-            <div className="syllabus-state flex min-h-48 items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"><LoaderCircle className="h-5 w-5 animate-spin text-[#2846C7]" /> Loading published syllabi…</div>
+            <div className="syllabus-state flex min-h-48 items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"><LoaderCircle className="h-5 w-5 animate-spin text-blue-600" /> Loading published syllabi…</div>
           ) : records.length ? (
             <div className="space-y-3">
               {groups.map((group, index) => (
                 <details key={`${group.regulation}-${group.year}`} open={index === 0 || group.branches.some(branch => String(branch.departmentId) === String(selected.department_id))} className="syllabus-result-group group rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:p-4">
                   <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                     <span className="flex items-center justify-between gap-3">
-                      <span><span className="block font-bold text-[#16265C] dark:text-white">{group.regulation} · Academic Year {group.year}</span><span className="text-xs text-slate-600 dark:text-slate-300">{group.branches.reduce((total, branch) => total + branch.records.length, 0)} subjects · {group.branches.length} branches</span></span>
+                      <span><span className="block font-bold text-slate-900 dark:text-white">{group.regulation} · Academic Year {group.year}</span><span className="text-xs text-slate-600 dark:text-slate-300">{group.branches.reduce((total, branch) => total + branch.records.length, 0)} subjects · {group.branches.length} branches</span></span>
                       <span className="syllabus-expand-pill rounded-full px-3 py-1 text-xs font-semibold">Expand</span>
                     </span>
                   </summary>
@@ -458,8 +472,8 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
                       <details key={`${branch.branch}-${branch.department || ''}`} data-department-id={branch.departmentId} open={branchIndex === 0 || String(branch.departmentId) === String(selected.department_id)} className="syllabus-branch-group rounded-2xl border border-slate-200 p-3 dark:border-slate-700 sm:p-4">
                         <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                           <span className="flex items-center justify-between gap-3">
-                            <span className="font-bold text-[#16265C] dark:text-white">{branch.branch}{branch.department ? ` · ${branch.department}` : ''}<span className="ml-2 text-xs font-medium text-slate-600 dark:text-slate-300">{branch.records.length} subject{branch.records.length === 1 ? '' : 's'}</span></span>
-                            <span className="text-xs font-semibold text-[#2846C7] dark:text-[#aebfff]">Branch</span>
+                            <span className="font-bold text-slate-900 dark:text-white">{branch.branch}{branch.department ? ` · ${branch.department}` : ''}<span className="ml-2 text-xs font-medium text-slate-600 dark:text-slate-300">{branch.records.length} subject{branch.records.length === 1 ? '' : 's'}</span></span>
+                            <span className="text-xs font-semibold text-blue-600 dark:text-blue-300">Branch</span>
                           </span>
                         </summary>
                         <div className="mt-3 grid gap-3 lg:grid-cols-2">
@@ -488,8 +502,8 @@ export default function SyllabusPage({ studentView = false, departmentBrowserVie
           )}
         </section>
       </main>
-      <footer className="border-t border-[#dbe2f0] bg-white px-4 py-5 text-center text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-        <span className="font-semibold text-[#16265C] dark:text-white">VNRVJIET</span> · Syllabus Library
+      <footer className="border-t border-slate-200 bg-white px-4 py-5 text-center text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+        <span className="font-semibold text-slate-900 dark:text-white">{collegeSettings?.college_name || 'College Portal'}</span> · Syllabus Library
       </footer>
       <SyllabusPreviewModal record={preview} onClose={closePreview} onDownload={downloadRecord} downloadError={downloadError} />
     </div>

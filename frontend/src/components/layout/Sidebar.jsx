@@ -2,12 +2,12 @@ import React from 'react';
 import {
   LayoutDashboard, Folder, Files, Clock, Star, Share2, 
   Trash2, Users, Building2, HardDrive, Activity, Settings, 
-  Plus, Upload, Database, Layers, X
+  Plus, Upload, Database, Layers, X, HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { formatBytes } from '../../utils/formatters';
-import { VNRVJIET_DARK_EMBLEM } from '../../utils/branding';
+import { getDisplayedLogo, DEFAULT_FALLBACK_LOGO } from '../../utils/branding';
 
 export default function Sidebar({ 
   currentPath, 
@@ -20,9 +20,8 @@ export default function Sidebar({
 }) {
   const { isAdmin, isHOD, collegeSettings } = useAuth();
   const { isDark } = useTheme();
-  const collegeLogo = collegeSettings?.college_logo || collegeSettings?.system_logo || '/logo.png';
-  const displayedCollegeLogo = isDark ? VNRVJIET_DARK_EMBLEM : collegeLogo;
-  const collegeName = collegeSettings?.college_name || 'VNRVJIET';
+  const displayedCollegeLogo = getDisplayedLogo(collegeSettings, isDark);
+  const collegeName = collegeSettings?.college_name || 'College Portal';
 
   const getNavItems = () => {
     if (isAdmin) {
@@ -48,6 +47,7 @@ export default function Sidebar({
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
         { label: 'Department Files', path: '/files', icon: Files },
         { label: 'Department Faculty', path: '/faculty', icon: Users },
+        { label: 'Student Questions', path: '/discussions', icon: HelpCircle },
         { label: 'Submit Syllabus', path: '/syllabus-management', icon: Layers },
         { label: 'Department Student Activity', path: '/student-resource-activity', icon: Activity },
         { label: 'Folders Tree', path: '/folders', icon: Folder },
@@ -64,6 +64,7 @@ export default function Sidebar({
         { section: 'Workspace' },
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
         { label: 'My Academic Files', path: '/files', icon: Files },
+        { label: 'Student Questions', path: '/discussions', icon: HelpCircle },
         { label: 'Submit Syllabus', path: '/syllabus-management', icon: Layers },
         { label: 'My Student Resource Activity', path: '/student-resource-activity', icon: Activity },
         { label: 'Activity Stream', path: '/activity', icon: Activity },
@@ -202,7 +203,12 @@ export default function Sidebar({
             <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className={`flex h-8 w-8 items-center justify-center overflow-hidden ${isDark ? '' : 'bg-white'}`}>
-                  <img src={displayedCollegeLogo} alt={`${collegeName} logo`} className="h-full w-full object-contain" />
+                  <img 
+                    src={displayedCollegeLogo} 
+                    alt={`${collegeName} logo`} 
+                    className="h-full w-full object-contain" 
+                    onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_LOGO; }}
+                  />
                 </div>
                 <span className="font-extrabold text-xs text-indigo-900 dark:text-indigo-300">{collegeSettings?.system_name || 'Faculty File Management System'}</span>
               </div>

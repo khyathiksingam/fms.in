@@ -2,17 +2,26 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const STORAGE_DIR = path.resolve(process.env.FFMS_STORAGE_DIR || path.resolve(__dirname, '../../storage/uploads'));
-
-// Ensure directory exists
-if (!fs.existsSync(STORAGE_DIR)) {
-  fs.mkdirSync(STORAGE_DIR, { recursive: true });
+function getStorageDir() {
+  const dir = path.resolve(
+    process.env.STORAGE_UPLOAD_DIR ||
+    process.env.FFMS_STORAGE_DIR ||
+    (process.env.STORAGE_LOCAL_DIR ? path.join(process.env.STORAGE_LOCAL_DIR, 'uploads') : null) ||
+    (process.env.FFMS_DATA_DIR ? path.join(process.env.FFMS_DATA_DIR, 'uploads') : null) ||
+    path.resolve(__dirname, '../../storage/uploads')
+  );
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  return dir;
 }
+
+const STORAGE_DIR = getStorageDir();
 
 function getStoragePath(storedFilename) {
   // Prevent directory traversal
   const safeFilename = path.basename(storedFilename);
-  return path.join(STORAGE_DIR, safeFilename);
+  return path.join(getStorageDir(), safeFilename);
 }
 
 function generateStorageFilename(originalName) {

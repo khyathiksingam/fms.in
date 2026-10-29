@@ -1,37 +1,48 @@
 services:
   - type: web
-    name: ffms-api
-    runtime: node
+    name: ffms-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     plan: starter
-    buildCommand: npm ci
-    startCommand: npm start
     healthCheckPath: /api/health
     disk:
       name: ffms-data
       mountPath: /var/data
       sizeGB: 1
     envVars:
-      - key: NODE_VERSION
-        value: 22.12.0
+      - key: PORT
+        value: 5000
       - key: NODE_ENV
         value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ffms-postgres
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://resourcehub-demo.vercel.app,https://fmsin.vercel.app,http://localhost:5173
+      - key: STORAGE_PROVIDER
+        value: local
+      - key: STORAGE_LOCAL_DIR
+        value: /var/data
+      - key: STORAGE_UPLOAD_DIR
+        value: /var/data/uploads
+      - key: STORAGE_LOGO_DIR
+        value: /var/data/logos
       - key: ADMIN_PASSWORD
         sync: false
       - key: FFMS_HOD_TEMP_PASSWORD
         sync: false
-      - key: CORS_ORIGINS
-        value: https://fmsin.vercel.app,https://fms-nchjwtdup-khyathik.vercel.app
-      - key: FFMS_DATA_DIR
-        value: /var/data
-      - key: FFMS_STORAGE_DIR
-        value: /var/data/uploads
-      - key: FFMS_LOGO_DIR
-        value: /var/data/logos
-      - key: BREVO_API_KEY
+      - key: EMAIL_PROVIDER_API_KEY
         sync: false
       - key: EMAIL_FROM
-        sync: false
+        value: noreply@college.edu
       - key: EMAIL_FROM_NAME
-        value: VNRVJIET
+        value: Faculty File Management System
+
+databases:
+  - name: ffms-postgres
+    plan: starter
+    databaseName: ffms_production
+    user: ffms_admin

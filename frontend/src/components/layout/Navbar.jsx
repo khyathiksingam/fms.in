@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Search, LogOut, User, 
-  Shield, ChevronDown, Menu, X, Sun, Moon
+  Shield, ChevronDown, Menu, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { VNRVJIET_DARK_EMBLEM } from '../../utils/branding';
+import { getDisplayedLogo, DEFAULT_FALLBACK_LOGO } from '../../utils/branding';
+import RoleBadge from '../common/RoleBadge';
+import ThemeToggle from '../common/ThemeToggle';
 
 export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobileMenuOpen, currentSearchQuery = '' }) {
   const { user, logout, collegeSettings } = useAuth();
@@ -16,9 +18,8 @@ export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobil
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   const profileRef = useRef(null);
-  const collegeLogo = collegeSettings?.college_logo || collegeSettings?.system_logo || '/logo.png';
-  const displayedCollegeLogo = isDark ? VNRVJIET_DARK_EMBLEM : collegeLogo;
-  const collegeName = collegeSettings?.college_name || 'VNRVJIET';
+  const displayedCollegeLogo = getDisplayedLogo(collegeSettings, isDark);
+  const collegeName = collegeSettings?.college_name || 'College Portal';
 
   useEffect(() => {
     setSearchQuery(currentSearchQuery || '');
@@ -68,11 +69,12 @@ export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobil
             src={displayedCollegeLogo}
             alt={`${collegeName} logo`}
             className="h-full w-full object-contain" 
+            onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_LOGO; }}
           />
         </div>
 
         <div className="text-left min-w-0">
-          <h1 className="text-xs font-extrabold uppercase tracking-wide text-[#14295f] dark:text-blue-200 line-clamp-1 max-w-[180px] sm:max-w-md lg:max-w-lg">
+          <h1 className="text-xs font-extrabold uppercase tracking-wide text-slate-900 dark:text-blue-100 line-clamp-1 max-w-[180px] sm:max-w-md lg:max-w-lg">
             {collegeName}
           </h1>
           <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 truncate">
@@ -114,19 +116,8 @@ export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobil
           <Search className="h-4 w-4" />
         </button>
 
-        {/* Dark / Light Mode Switcher Option (Replaced Fullscreen) */}
-        <button
-          onClick={toggleTheme}
-          className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 dark:border-slate-700 dark:bg-slate-800 dark:text-amber-400 dark:hover:bg-slate-750 dark:hover:border-amber-400/30 transition cursor-pointer"
-          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        >
-          {isDark ? (
-            <Sun className="h-4 w-4 text-amber-400 animate-in spin-in-180 duration-300" />
-          ) : (
-            <Moon className="h-4 w-4 text-slate-700 animate-in spin-in-180 duration-300" />
-          )}
-        </button>
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
         {user?.role_name === 'hod' && user.assigned_departments?.length > 1 && (
           <label className="flex items-center">
@@ -137,7 +128,7 @@ export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobil
                 localStorage.setItem('ffms_active_department', event.target.value);
                 window.location.reload();
               }}
-              className="max-w-28 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-[10px] font-semibold text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:max-w-48 sm:px-2.5 sm:text-xs"
+              className="max-w-28 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-[10px] font-semibold text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:max-w-48 sm:px-2.5 sm:text-xs"
             >
               {user.assigned_departments.map(department => (
                 <option key={department.id} value={department.id}>{department.name}</option>
@@ -146,10 +137,9 @@ export default function Navbar({ onSearch, onNavigate, onToggleMobileMenu, mobil
           </label>
         )}
 
-        {/* Current Role Badge */}
-        <div className={`hidden sm:flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold ${roleColor}`}>
-          <Shield className="h-3.5 w-3.5" />
-          <span>Role: <strong className="uppercase">{user?.role_name || 'FACULTY'}</strong></span>
+        {/* Unified Role Badge */}
+        <div className="hidden sm:block">
+          <RoleBadge role={user?.role_name} departmentCode={user?.department_code} />
         </div>
 
         {/* User Profile Menu */}

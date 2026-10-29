@@ -18,21 +18,21 @@ const pillars = [
 export default function AboutPage() {
   return (
     <PublicSiteLayout activePage="About">
-      <section className="relative isolate overflow-hidden bg-[#102a4d] text-white">
+      <section className="relative isolate overflow-hidden app-hero rounded-none border-x-0 border-t-0 text-white">
         <div className="absolute -right-20 -top-32 -z-10 h-96 w-96 rounded-full bg-blue-400/15 blur-3xl" />
         <div className="absolute -bottom-36 left-1/4 -z-10 h-80 w-80 rounded-full bg-amber-300/10 blur-3xl" />
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:py-28">
           <div className="max-w-3xl animate-[fade-in-up_.7s_ease-out_both]">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold tracking-wide text-blue-100">
-              <Building2 className="h-4 w-4 text-amber-300" /> ABOUT VNRVJIET
+              <Building2 className="h-4 w-4 text-amber-300" /> ABOUT INSTITUTION
             </span>
             <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-              About <span className="text-amber-300">VNRVJIET</span>
+              About Our <span className="text-amber-300">College</span>
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-blue-100/85 sm:text-lg">
               A learning community shaped by academic purpose, a spirit of inquiry, and a commitment to developing tomorrow’s leaders.
             </p>
-            <a href="#our-story" className="mt-8 inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-extrabold text-[#102a4d] shadow-lg transition hover:-translate-y-0.5 hover:bg-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+            <a href="#our-story" className="btn-accent mt-8 inline-flex items-center gap-2">
               Discover our story <Compass className="h-4 w-4" />
             </a>
           </div>
@@ -41,26 +41,26 @@ export default function AboutPage() {
 
       <section id="our-story" className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[.7fr_1.3fr] lg:gap-16 lg:py-20">
         <div className="lg:sticky lg:top-32 lg:self-start">
-          <span className="text-xs font-black uppercase tracking-[.2em] text-[#b8892c]">Our story</span>
-          <h2 className="mt-3 text-3xl font-black leading-tight text-[#12305a] sm:text-4xl dark:text-slate-100">A vision that continues to grow</h2>
+          <span className="text-xs font-black uppercase tracking-[.2em] text-amber-600 dark:text-amber-400">Our story</span>
+          <h2 className="mt-3 text-3xl font-black leading-tight text-slate-900 sm:text-4xl dark:text-slate-100">A vision that continues to grow</h2>
           <div className="mt-6 h-1 w-16 rounded-full bg-amber-400" />
           <div className="mt-8 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="text-2xl font-black text-[#12305a] dark:text-slate-100">1995</div>
-              <div className="mt-1 text-xs font-semibold text-slate-500">Institute established</div>
+            <div className="app-card p-4">
+              <div className="text-2xl font-black text-slate-900 dark:text-slate-100">1995</div>
+              <div className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Institute established</div>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="text-2xl font-black text-[#12305a] dark:text-slate-100">A++</div>
-              <div className="mt-1 text-xs font-semibold text-slate-500">NAAC accreditation</div>
+            <div className="app-card p-4">
+              <div className="text-2xl font-black text-slate-900 dark:text-slate-100">A++</div>
+              <div className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">NAAC accreditation</div>
             </div>
           </div>
         </div>
-        <div className="space-y-5 text-sm leading-7 text-slate-600 sm:text-base sm:leading-8">
+        <div className="space-y-5 text-sm leading-7 text-slate-600 sm:text-base sm:leading-8 dark:text-slate-300">
           {aboutContent.story.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
-          <div className="rounded-2xl border-l-4 border-amber-400 bg-white p-5 shadow-sm">
+          <div className="app-card border-l-4 border-l-amber-400 p-5">
             <div className="flex items-start gap-3">
-              <Award className="mt-1 h-5 w-5 shrink-0 text-[#b8892c]" />
-              <p className="font-semibold text-[#12305a] dark:text-slate-100">
+              <Award className="mt-1 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <p className="font-semibold text-slate-900 dark:text-slate-100">
                 Undergraduate, postgraduate, and doctoral learning come together in a community committed to research, innovation, and holistic development.
               </p>
             </div>
@@ -71,22 +71,22 @@ export default function AboutPage() {
       <section id="our-purpose" className="bg-white py-16 sm:py-20 dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <span className="text-xs font-black uppercase tracking-[.2em] text-[#b8892c]">Our purpose</span>
-            <h2 className="mt-3 text-3xl font-black text-[#12305a] sm:text-4xl dark:text-slate-100">Vision &amp; Mission</h2>
-            <p className="mt-3 text-sm text-slate-500">A shared direction for learning, discovery, and meaningful contribution.</p>
+            <span className="text-xs font-black uppercase tracking-[.2em] text-amber-600 dark:text-amber-400">Our purpose</span>
+            <h2 className="mt-3 text-3xl font-black text-slate-900 sm:text-4xl dark:text-slate-100">Vision &amp; Mission</h2>
+            <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">A shared direction for learning, discovery, and meaningful contribution.</p>
           </div>
           <div className="mt-10 grid gap-5 lg:grid-cols-2">
-            <article className="rounded-3xl border border-blue-100 bg-gradient-to-br from-[#12305a] to-[#1b467e] p-7 text-white shadow-xl shadow-blue-950/10 sm:p-9">
+            <article className="app-hero p-7 text-white sm:p-9">
               <Compass className="h-7 w-7 text-amber-300" />
               <h3 className="mt-5 text-xl font-black">Our Vision</h3>
               <p className="mt-3 text-sm leading-7 text-blue-100">{aboutContent.vision}</p>
             </article>
-            <article className="rounded-3xl border border-slate-200 bg-[#f8fafc] p-7 shadow-lg shadow-slate-900/5 sm:p-9 dark:border-slate-700 dark:bg-slate-900">
-              <Target className="h-7 w-7 text-[#b8892c]" />
-              <h3 className="mt-5 text-xl font-black text-[#12305a] dark:text-slate-100">Our Mission</h3>
+            <article className="app-card p-7 sm:p-9">
+              <Target className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+              <h3 className="mt-5 text-xl font-black text-slate-900 dark:text-slate-100">Our Mission</h3>
               <ul className="mt-4 space-y-3">
                 {aboutContent.mission.map(item => (
-                  <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600">
+                  <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
                     <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />{item}
                   </li>
                 ))}
@@ -97,13 +97,13 @@ export default function AboutPage() {
       </section>
 
       <section className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-20">
-        <div className="rounded-3xl border border-amber-200/80 bg-white p-7 shadow-xl shadow-amber-900/5 sm:p-9">
-          <HeartHandshake className="h-7 w-7 text-[#b8892c]" />
-          <span className="mt-5 block text-xs font-black uppercase tracking-[.2em] text-[#b8892c]">Our commitment</span>
-          <h2 className="mt-2 text-2xl font-black text-[#12305a] dark:text-slate-100">Quality Policy</h2>
-          <p className="mt-4 text-sm leading-7 text-slate-600">{aboutContent.qualityPolicy}</p>
+        <div className="app-card border-amber-200/80 p-7 sm:p-9 dark:border-amber-900/50">
+          <HeartHandshake className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+          <span className="mt-5 block text-xs font-black uppercase tracking-[.2em] text-amber-600 dark:text-amber-400">Our commitment</span>
+          <h2 className="mt-2 text-2xl font-black text-slate-900 dark:text-slate-100">Quality Policy</h2>
+          <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{aboutContent.qualityPolicy}</p>
         </div>
-        <div className="rounded-3xl bg-[#12305a] p-7 text-white shadow-xl shadow-blue-950/10 sm:p-9">
+        <div className="app-hero p-7 text-white sm:p-9">
           <Lightbulb className="h-7 w-7 text-amber-300" />
           <h2 className="mt-5 text-2xl font-black">Our Objectives</h2>
           <ul className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -116,20 +116,20 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="bg-[#eef3f8] py-16 sm:py-20 dark:bg-slate-900">
+      <section className="bg-slate-50 py-16 sm:py-20 dark:bg-slate-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="text-center">
-            <span className="text-xs font-black uppercase tracking-[.2em] text-[#b8892c]">What we stand for</span>
-            <h2 className="mt-3 text-3xl font-black text-[#12305a] sm:text-4xl dark:text-slate-100">The pillars that guide us</h2>
+            <span className="text-xs font-black uppercase tracking-[.2em] text-amber-600 dark:text-amber-400">What we stand for</span>
+            <h2 className="mt-3 text-3xl font-black text-slate-900 sm:text-4xl dark:text-slate-100">The pillars that guide us</h2>
           </div>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {pillars.map(({ icon: Icon, title, description, iconClass }) => (
-              <article key={title} className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl">
+              <article key={title} className="app-card group p-6 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
                 <div className={`flex h-12 w-12 items-center justify-center rounded-2xl transition group-hover:scale-105 ${iconClass}`}>
                   <Icon className="h-6 w-6" />
                 </div>
-                <h3 className="mt-5 text-lg font-extrabold text-[#12305a] dark:text-slate-100">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
+                <h3 className="mt-5 text-lg font-extrabold text-slate-900 dark:text-slate-100">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p>
               </article>
             ))}
           </div>

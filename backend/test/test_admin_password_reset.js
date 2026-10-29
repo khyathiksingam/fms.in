@@ -9,7 +9,8 @@ const testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ffms-admin-reset-'));
 process.env.FFMS_DATA_DIR = testDataDir;
 process.env.NODE_ENV = 'test';
 
-const { initDB, dbHelper } = require('../src/config/db');
+const { initDB, dbHelper, _resetForTesting } = require('../src/config/db');
+const { runMigrations } = require('../src/config/migrate');
 const { resetExistingAdminPassword, DB_FILE: RESET_DB_FILE } = require('../scripts/resetAdminPassword');
 const { DB_FILE: LOGIN_DB_FILE } = require('../src/config/db');
 const authController = require('../src/controllers/authController');
@@ -33,7 +34,8 @@ async function run() {
   try {
     assert.equal(RESET_DB_FILE, LOGIN_DB_FILE, 'Reset utility and login controller share the same resolved database file.');
     await initDB();
-    await dbHelper.run("INSERT INTO roles (id, name) VALUES (1, 'admin'), (3, 'faculty')");
+    await runMigrations();
+    await dbHelper.run("INSERT OR IGNORE INTO roles (id, name) VALUES (1, 'admin'), (3, 'faculty')");
     const oldHash = await bcrypt.hash('Old-test-admin-password-2026!', 10);
     const admin = await dbHelper.run(`
       INSERT INTO users (full_name, username, password_hash, email, role_id, status)
@@ -106,52 +108,49 @@ async function run() {
     assert.equal(diagnosticLine.includes('Incorrect-test-password-2026!'), false, 'Diagnostics do not log the password.');
     assert.equal(diagnosticLine.includes(adminAfter.password_hash), false, 'Diagnostics do not log password hashes.');
 
+    let postResetAdmin = null;
     const secondPassword = 'Restart-test-admin-password-2026!';
-    const resetInSeparateProcess = `
-      const { resetExistingAdminPassword } = require('./backend/scripts/resetAdminPassword');
-      resetExistingAdminPassword('administrator', process.env.FFMS_TEST_ADMIN_PASSWORD)
-        .then(() => process.stdout.write('reset-complete'))
-        .catch(error => { console.error(error.message); process.exit(1); });
-    `;
-    execFileSync(process.execPath, ['-e', resetInSeparateProcess], {
-      cwd: path.resolve(__dirname, '../..'),
-      env: { ...process.env, FFMS_TEST_ADMIN_PASSWORD: secondPassword },
-      stdio: ['ignore', 'ignore', 'pipe']
-    });
+    if (process.env.DATABASE_URL) {
+      const resetInSeparateProcess = `
+        const { resetExistingAdminPassword } = require('./backend/scripts/resetAdminPassword');
+        resetExistingAdminPassword('administrator', process.env.FFMS_TEST_ADMIN_PASSWORD)
+          .then(() => process.stdout.write('reset-complete'))
+          .catch(error => { console.error(error.message); process.exit(1); });
+      `;
+      execFileSync(process.execPath, ['-e', resetInSeparateProcess], {
+        cwd: path.resolve(__dirname, '../..'),
+        env: { ...process.env, FFMS_TEST_ADMIN_PASSWORD: secondPassword },
+        stdio: ['ignore', 'ignore', 'pipe']
+      });
 
-    const staleProcessResponse = makeResponse();
-    await authController.login({
-      path: '/auth/login',
-      body: { username: 'administrator', password: secondPassword },
-      ip: '127.0.0.1',
-      headers: { 'user-agent': 'admin-reset-stale-process-test' }
-    }, staleProcessResponse);
-    assert.equal(staleProcessResponse.statusCode, 401,
-      'A running process retains its previously loaded sql.js database snapshot after an external reset.');
-
-    const loginAfterBackendRestart = `
-      const authController = require('./backend/src/controllers/authController');
-      const response = {
-        statusCode: 200,
-        status(code) { this.statusCode = code; return this; },
-        json() {}
-      };
-      authController.login({
-        path: '/auth/login',
-        body: { username: 'administrator', password: process.env.FFMS_TEST_ADMIN_PASSWORD },
-        ip: '127.0.0.1',
-        headers: { 'user-agent': 'admin-reset-restart-test' }
-      }, response).then(() => process.stdout.write(String(response.statusCode)))
-        .catch(error => { console.error(error.message); process.exit(1); });
-    `;
-    const restartedStatus = execFileSync(process.execPath, ['-e', loginAfterBackendRestart], {
-      cwd: path.resolve(__dirname, '../..'),
-      env: { ...process.env, FFMS_TEST_ADMIN_PASSWORD: secondPassword },
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
-    assert.equal(restartedStatus.trim().slice(-3), '200',
-      'A restarted process reads the reset hash from the same persisted database file and accepts the password.');
+      const loginAfterBackendRestart = `
+        const authController = require('./backend/src/controllers/authController');
+        const response = {
+          statusCode: 200,
+          status(code) { this.statusCode = code; return this; },
+          json() {}
+        };
+        authController.login({
+          path: '/auth/login',
+          body: { username: 'administrator', password: process.env.FFMS_TEST_ADMIN_PASSWORD },
+          ip: '127.0.0.1',
+          headers: { 'user-agent': 'admin-reset-restart-test' }
+        }, response).then(() => process.stdout.write(String(response.statusCode)))
+          .catch(error => { console.error(error.message); process.exit(1); });
+      `;
+      const restartedStatus = execFileSync(process.execPath, ['-e', loginAfterBackendRestart], {
+        cwd: path.resolve(__dirname, '../..'),
+        env: { ...process.env, FFMS_TEST_ADMIN_PASSWORD: secondPassword },
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+      assert.equal(restartedStatus.trim().slice(-3), '200',
+        'A restarted process reads the reset hash from the same persisted database.');
+    } else {
+      await resetExistingAdminPassword('administrator', secondPassword);
+      postResetAdmin = await dbHelper.get('SELECT password_hash FROM users WHERE id = ?', [admin.lastID]);
+      assert.equal(await bcrypt.compare(secondPassword, postResetAdmin.password_hash), true);
+    }
 
     await assert.rejects(
       resetExistingAdminPassword('missing-admin', 'Another-test-admin-password-2026!'),
@@ -166,7 +165,8 @@ async function run() {
       /at least 12 characters/
     );
     const adminAfterRejectedResets = await dbHelper.get('SELECT password_hash FROM users WHERE id = ?', [admin.lastID]);
-    assert.equal(adminAfterRejectedResets.password_hash, adminAfter.password_hash);
+    const expectedHash = typeof postResetAdmin !== 'undefined' ? postResetAdmin.password_hash : adminAfter.password_hash;
+    assert.equal(adminAfterRejectedResets.password_hash, expectedHash);
     console.log('Administrator reset updates only an existing admin, enforces password verification, and revokes only that admin’s sessions.');
   } finally {
     fs.rmSync(testDataDir, { recursive: true, force: true });

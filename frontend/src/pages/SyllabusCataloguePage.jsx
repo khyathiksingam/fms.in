@@ -269,7 +269,7 @@ export default function SyllabusCataloguePage() {
           <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} onClick={() => {
             setActiveTab(tab);
             if (tab === 'catalogue') loadMasterData();
-          }} className={`rounded-xl border px-4 py-2 text-xs font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${activeTab === tab ? 'border-[#16265C] bg-[#16265C] text-white shadow-md' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'}`}>
+          }} className={`rounded-xl border px-4 py-2 text-xs font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${activeTab === tab ? 'btn-primary shadow-md' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'}`}>
             {label}
           </button>
         ))}

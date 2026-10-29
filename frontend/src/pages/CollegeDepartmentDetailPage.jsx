@@ -28,7 +28,7 @@ export default function CollegeDepartmentDetailPage({ departmentId }) {
         </div>
       ) : (
         <>
-          <section className="bg-[#102a4d] text-white">
+          <section className="app-hero text-white rounded-none border-x-0 border-t-0">
             <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
               <a href="/college-departments" className="inline-flex items-center gap-2 text-xs font-bold text-blue-100 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
                 <ArrowLeft className="h-4 w-4" /> All Departments
@@ -47,27 +47,27 @@ export default function CollegeDepartmentDetailPage({ departmentId }) {
           </section>
 
           <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[.8fr_1.2fr]">
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-black text-[#12305a] dark:text-slate-100">Department information</h2>
+            <section className="app-card p-6">
+              <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">Department information</h2>
               <div className="mt-5 flex items-start gap-3 rounded-xl bg-blue-50 p-4 dark:bg-blue-950/50">
-                <Users className="mt-0.5 h-5 w-5 shrink-0 text-[#12305a] dark:text-blue-200" />
+                <Users className="mt-0.5 h-5 w-5 shrink-0 text-blue-900 dark:text-blue-200" />
                 <div>
                   <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Head of Department</h3>
-                  <p className="mt-1 text-sm font-bold text-[#12305a] dark:text-blue-100">{data.department.hod_names || 'Information will be updated.'}</p>
+                  <p className="mt-1 text-sm font-bold text-slate-900 dark:text-blue-100">{data.department.hod_names || 'Information will be updated.'}</p>
                 </div>
               </div>
-              <p className="mt-5 text-sm leading-6 text-slate-600">
+              <p className="mt-5 text-sm leading-6 text-slate-600 dark:text-slate-300">
                 The department supports teaching, learning, and academic development within {data.department.name}.
               </p>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="app-card p-6">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-black text-[#12305a] dark:text-slate-100">Faculty</h2>
+                  <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">Faculty</h2>
                   <p className="mt-1 text-xs text-slate-500">Active faculty listed for this department.</p>
                 </div>
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-extrabold text-[#12305a] dark:bg-blue-950/60 dark:text-blue-100">{data.faculty.length}</span>
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-extrabold text-blue-900 dark:bg-blue-950/60 dark:text-blue-100">{data.faculty.length}</span>
               </div>
               {data.faculty.length ? (
                 <ul className="mt-5 divide-y divide-slate-100">

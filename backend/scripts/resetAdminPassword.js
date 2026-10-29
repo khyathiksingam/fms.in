@@ -39,40 +39,37 @@ async function resetExistingAdminPassword(username, password) {
     throw new Error('The administrator account has an invalid database identifier; no changes were made.');
   }
 
-  const sql = `
-    BEGIN IMMEDIATE;
-    UPDATE users
-    SET password_hash = ${quoteSql(passwordHash)},
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = ${userId}
-      AND role_id = (SELECT id FROM roles WHERE name = 'admin');
-    UPDATE sessions
-    SET ended_at = ${quoteSql(resetAt)},
-        end_reason = 'password_reset',
-        duration_seconds = MAX(0, CAST((julianday(${quoteSql(resetAt)}) - julianday(created_at)) * 86400 AS INTEGER))
-    WHERE user_id = ${userId}
-      AND ended_at IS NULL
-      AND expired_at IS NULL;
-    COMMIT;
-  `;
-
   try {
-    await dbHelper.exec(sql);
+    await dbHelper.run('BEGIN');
+    await dbHelper.run(`
+      UPDATE users
+      SET password_hash = $1,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+        AND role_id = (SELECT id FROM roles WHERE name = 'admin')
+    `, [passwordHash, userId]);
+
+    await dbHelper.run(`
+      UPDATE sessions
+      SET ended_at = CURRENT_TIMESTAMP,
+          end_reason = 'password_reset',
+          duration_seconds = 1
+      WHERE user_id = $1
+        AND ended_at IS NULL
+        AND expired_at IS NULL
+    `, [userId]);
+    await dbHelper.run('COMMIT');
   } catch (error) {
-    try {
-      await dbHelper.exec('ROLLBACK;');
-    } catch {
-      // Preserve the original transaction failure.
-    }
+    await dbHelper.run('ROLLBACK').catch(() => {});
     throw new Error('The administrator password reset could not be committed.');
   }
 
   const revoked = await dbHelper.get(`
     SELECT COUNT(*) AS count
     FROM sessions
-    WHERE user_id = ? AND ended_at = ? AND end_reason = 'password_reset'
-  `, [userId, resetAt]);
-  return { revokedSessions: revoked?.count || 0 };
+    WHERE user_id = $1 AND end_reason = 'password_reset'
+  `, [userId]);
+  return { revokedSessions: Number(revoked?.count || 0) };
 }
 
 function promptLine(message, { secret = false } = {}) {

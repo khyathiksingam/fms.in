@@ -33,6 +33,7 @@ import CollegeDepartmentDetailPage from './pages/CollegeDepartmentDetailPage';
 import CollegeFacultyPage from './pages/CollegeFacultyPage';
 import HODDashboardPage from './pages/HODDashboardPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
+import DiscussionsPage from './pages/DiscussionsPage';
 import FileUploadModal from './components/files/FileUploadModal';
 import NewFolderModal from './components/files/NewFolderModal';
 import FilePreviewModal from './components/files/FilePreviewModal';
@@ -77,7 +78,9 @@ function MainApp({ currentPath, navigate }) {
       return;
     }
     if (user?.role_name === 'student') {
-      navigate('/student-syllabus', true);
+      if (currentPath !== '/my-doubts' && currentPath !== '/student-syllabus') {
+        navigate('/student-syllabus', true);
+      }
       return;
     }
     if (!user && currentPath !== '/faculty-portal') {
@@ -211,6 +214,9 @@ function MainApp({ currentPath, navigate }) {
         return <SyllabusCataloguePage />;
       case '/student-resource-activity':
         return <StudentResourceActivityPage />;
+      case '/discussions':
+      case '/my-doubts':
+        return <DiscussionsPage />;
       case '/profile':
         return <ProfilePage />;
       case '/change-password':
@@ -304,6 +310,35 @@ function AppContent() {
     const handlePopState = () => setCurrentPath(getCurrentPath());
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      const anchor = e.target.closest('a');
+      if (!anchor) return;
+      const href = anchor.getAttribute('href');
+      if (
+        href &&
+        href.startsWith('/') &&
+        !href.startsWith('//') &&
+        !href.startsWith('/api') &&
+        !anchor.getAttribute('download') &&
+        anchor.target !== '_blank' &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.shiftKey &&
+        !e.altKey &&
+        e.button === 0
+      ) {
+        e.preventDefault();
+        window.history.pushState({}, '', href);
+        setCurrentPath(getCurrentPath());
+        window.scrollTo(0, 0);
+      }
+    };
+
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
   }, []);
 
   useEffect(() => {
