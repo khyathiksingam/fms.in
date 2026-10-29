@@ -207,7 +207,7 @@ export default function FileTable({
                         <button
                           onClick={() => onDelete(file)}
                           className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/50 dark:hover:text-rose-400 cursor-pointer"
-                          title="Move to Trash"
+                          title="Delete File"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>

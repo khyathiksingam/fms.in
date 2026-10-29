@@ -206,7 +206,7 @@ export default function FileCard({
                         className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/60 cursor-pointer"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                        Move to Trash
+                        Delete File
                       </button>
                     </>
                   ) : (

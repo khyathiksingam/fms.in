@@ -43,11 +43,27 @@ function saveBuffer(buffer, originalName) {
 
 function deleteStoredFile(storedFilename) {
   try {
+    if (!storedFilename || typeof storedFilename !== 'string') return false;
+    let deleted = false;
+    // Check if storedFilename is already a valid absolute path on disk
+    if (path.isAbsolute(storedFilename) && fs.existsSync(storedFilename)) {
+      try {
+        fs.unlinkSync(storedFilename);
+        deleted = true;
+      } catch (e) {
+        console.warn('Could not unlink direct absolute path:', storedFilename, e.message);
+      }
+    }
     const fullPath = getStoragePath(storedFilename);
     if (fs.existsSync(fullPath)) {
-      fs.unlinkSync(fullPath);
+      try {
+        fs.unlinkSync(fullPath);
+        deleted = true;
+      } catch (e) {
+        console.warn('Could not unlink storage dir path:', fullPath, e.message);
+      }
     }
-    return true;
+    return deleted;
   } catch (err) {
     console.error('Error deleting stored file:', err);
     return false;

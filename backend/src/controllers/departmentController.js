@@ -370,29 +370,46 @@ const departmentController = {
         return res.status(404).json({ error: 'Department not found.' });
       }
 
-      const links = await dbHelper.get(`
-        SELECT
-          (SELECT COUNT(*) FROM users WHERE department_id = ?) +
-          (SELECT COUNT(*) FROM files WHERE department_id = ?) +
-          (SELECT COUNT(*) FROM folders WHERE department_id = ?) +
-          (SELECT COUNT(*) FROM syllabus_catalog WHERE department_id = ?) +
-          (SELECT COUNT(*) FROM hod_departments WHERE department_id = ?) AS total
-      `, [id, id, id, id, id]);
-      if (links.total > 0) {
-        return res.status(409).json({ error: 'This department has linked users or records. Deactivate it instead of deleting it.' });
-      }
-      await dbHelper.run('DELETE FROM hod_departments WHERE department_id = ?', [id]);
+      // Safely unlink related records to preserve all user accounts and user-uploaded files:
+      // 1. Unlink users assigned to this department (preserves accounts, passwords, and profiles)
+      await dbHelper.run("UPDATE users SET department_id = NULL WHERE department_id = ?", [id]);
+
+      // 2. Remove HOD and user-department associations
+      await dbHelper.run("DELETE FROM hod_departments WHERE department_id = ?", [id]);
+      await dbHelper.run("DELETE FROM user_departments WHERE department_id = ?", [id]);
+
+      // 3. Unlink user-uploaded files (preserves all files and contents)
+      await dbHelper.run("UPDATE files SET department_id = NULL WHERE department_id = ?", [id]);
+
+      // 4. Unlink user folders (preserves all folder structures)
+      await dbHelper.run("UPDATE folders SET department_id = NULL WHERE department_id = ?", [id]);
+
+      // 5. Remove departmental shares
+      await dbHelper.run("DELETE FROM shared_files WHERE shared_with_department = ?", [id]);
+
+      // 6. Delete syllabus catalog entries linked specifically to this department
+      await dbHelper.run("DELETE FROM syllabus_catalog WHERE department_id = ?", [id]);
+
+      // 7. Unlink audit trail and student activity entries
+      await dbHelper.run("UPDATE student_resource_activity SET department_id = NULL WHERE department_id = ?", [id]);
+      await dbHelper.run("UPDATE activity_logs SET department_id = NULL WHERE department_id = ?", [id]);
+
+      // 8. Delete the department record itself
       await dbHelper.run("DELETE FROM departments WHERE id = ?", [id]);
 
+      // 9. Record deletion in activity log
       await dbHelper.run(
         "INSERT INTO activity_logs (user_id, action, department_id, metadata) VALUES (?, ?, ?, ?)",
         [req.user.id, 'Department Deleted', null, JSON.stringify({ name: dept.name, code: dept.code })]
       );
 
-      res.json({ message: 'Department deleted successfully.' });
+      res.json({
+        success: true,
+        message: `Department "${dept.name}" (${dept.code}) deleted successfully and related records safely unlinked.`
+      });
     } catch (error) {
       console.error('Delete department error:', error);
-      res.status(500).json({ error: 'Failed to delete department.' });
+      res.status(500).json({ error: 'Failed to delete department: ' + error.message });
     }
   }
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, RotateCcw, AlertTriangle, CheckCircle2, CheckSquare, Square } from 'lucide-react';
+import { Trash2, RotateCcw, AlertTriangle, CheckCircle2, CheckSquare, Square, X, CircleAlert } from 'lucide-react';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { formatBytes, formatDate, formatRelativeTime } from '../utils/formatters';
@@ -17,6 +17,7 @@ export default function TrashPage() {
   const [showEmptyTrashDialog, setShowEmptyTrashDialog] = useState(false);
   const [showRestoreAllDialog, setShowRestoreAllDialog] = useState(false);
   const [message, setMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     loadTrash();
@@ -53,10 +54,11 @@ export default function TrashPage() {
     try {
       const res = await api.post(`/files/${file.id}/restore`);
       setMessage(res.message || `File "${file.name}" restored successfully.`);
+      setErrorMessage('');
       setFiles(prev => prev.filter(f => f.id !== file.id));
       setSelectedIds(prev => prev.filter(id => id !== file.id));
     } catch (err) {
-      alert('Failed to restore file: ' + err.message);
+      setErrorMessage(err.message || 'Failed to restore file.');
     }
   };
 
@@ -65,11 +67,13 @@ export default function TrashPage() {
     try {
       const res = await api.post('/trash/restore-all');
       setMessage(res.message || `All files successfully restored to College Files.`);
+      setErrorMessage('');
       setFiles([]);
       setSelectedIds([]);
       setShowRestoreAllDialog(false);
     } catch (err) {
-      alert('Failed to restore all files: ' + err.message);
+      setErrorMessage(err.message || 'Failed to restore all files.');
+      setShowRestoreAllDialog(false);
     } finally {
       setRestoringAll(false);
     }
@@ -80,23 +84,26 @@ export default function TrashPage() {
     try {
       const res = await api.post('/trash/restore-selected', { file_ids: selectedIds });
       setMessage(res.message || `${selectedIds.length} files restored successfully.`);
+      setErrorMessage('');
       setFiles(prev => prev.filter(f => !selectedIds.includes(f.id)));
       setSelectedIds([]);
     } catch (err) {
-      alert('Failed to restore selected files: ' + err.message);
+      setErrorMessage(err.message || 'Failed to restore selected files.');
     }
   };
 
   const handlePermanentDeleteConfirm = async () => {
     if (!fileToPermanentDelete) return;
     try {
-      await api.delete(`/files/${fileToPermanentDelete.id}/permanent`);
+      const res = await api.delete(`/files/${fileToPermanentDelete.id}/permanent`);
       setFiles(prev => prev.filter(f => f.id !== fileToPermanentDelete.id));
       setSelectedIds(prev => prev.filter(id => id !== fileToPermanentDelete.id));
+      setMessage(res.message || `File "${fileToPermanentDelete.name}" permanently deleted.`);
+      setErrorMessage('');
       setFileToPermanentDelete(null);
-      setMessage('File permanently deleted.');
     } catch (err) {
-      alert('Failed to permanently delete: ' + err.message);
+      setErrorMessage(err.message || 'Failed to permanently delete file.');
+      setFileToPermanentDelete(null);
     }
   };
 
@@ -106,9 +113,11 @@ export default function TrashPage() {
       setFiles([]);
       setSelectedIds([]);
       setShowEmptyTrashDialog(false);
-      setMessage(res.message || 'Trash emptied.');
+      setMessage(res.message || 'Trash emptied successfully.');
+      setErrorMessage('');
     } catch (err) {
-      alert('Failed to empty trash: ' + err.message);
+      setErrorMessage(err.message || 'Failed to empty trash.');
+      setShowEmptyTrashDialog(false);
     }
   };
 
@@ -162,9 +171,27 @@ export default function TrashPage() {
 
       {/* Status Message */}
       {message && (
-        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 shadow-xs border border-emerald-200/60 dark:border-emerald-800">
-          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-          <span>{message}</span>
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-emerald-50 p-3 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 shadow-xs border border-emerald-200/60 dark:border-emerald-800">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>{message}</span>
+          </div>
+          <button onClick={() => setMessage('')} className="text-emerald-600 hover:text-emerald-800 cursor-pointer">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-rose-50 p-3 text-xs font-semibold text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 shadow-xs border border-rose-200 dark:border-rose-900">
+          <div className="flex items-center gap-2">
+            <CircleAlert className="h-4 w-4 text-rose-600 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+          <button onClick={() => setErrorMessage('')} className="text-rose-500 hover:text-rose-700 cursor-pointer">
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
       )}
 

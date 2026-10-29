@@ -17,6 +17,51 @@ function getFileTypeCategory(ext, mimeType) {
   if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'archive';
   return 'other';
 }
+
+async function purgeFileRecordAndStorage(file) {
+  if (!file) return;
+
+  // 1. Delete physical storage file from disk
+  if (file.storage_path) {
+    deleteStoredFile(file.storage_path);
+  }
+  if (file.path && file.path !== file.storage_path) {
+    deleteStoredFile(file.path);
+  }
+
+  // 2. Delete physical version files from storage disk
+  const versions = await dbHelper.all("SELECT storage_path FROM file_versions WHERE file_id = ?", [file.id]);
+  for (const v of versions) {
+    if (v.storage_path && v.storage_path !== file.storage_path) {
+      deleteStoredFile(v.storage_path);
+    }
+  }
+
+  // 3. Clean up DB child records safely to avoid foreign key errors
+  await dbHelper.run(`
+    DELETE FROM file_messages 
+    WHERE conversation_id IN (SELECT id FROM file_conversations WHERE file_id = ?)
+  `, [file.id]).catch(() => {});
+
+  await dbHelper.run(`
+    DELETE FROM notifications 
+    WHERE related_file_id = ? 
+       OR related_conversation_id IN (SELECT id FROM file_conversations WHERE file_id = ?)
+  `, [file.id, file.id]).catch(() => {});
+
+  await dbHelper.run("DELETE FROM file_conversations WHERE file_id = ?", [file.id]).catch(() => {});
+  await dbHelper.run("DELETE FROM syllabus_catalog WHERE file_id = ?", [file.id]).catch(() => {});
+  await dbHelper.run("DELETE FROM favorites WHERE file_id = ?", [file.id]).catch(() => {});
+  await dbHelper.run("DELETE FROM shared_files WHERE file_id = ?", [file.id]).catch(() => {});
+  await dbHelper.run("DELETE FROM file_permissions WHERE file_id = ?", [file.id]).catch(() => {});
+  await dbHelper.run("DELETE FROM file_versions WHERE file_id = ?", [file.id]).catch(() => {});
+  await dbHelper.run("UPDATE student_resource_activity SET file_id = NULL WHERE file_id = ?", [file.id]).catch(() => {});
+  await dbHelper.run("UPDATE activity_logs SET file_id = NULL WHERE file_id = ?", [file.id]).catch(() => {});
+
+  // 4. Finally delete the file record itself
+  await dbHelper.run("DELETE FROM files WHERE id = ?", [file.id]);
+}
+
 const fileController = {
   async uploadFiles(req, res) {
     try {
@@ -582,6 +627,7 @@ const fileController = {
     try {
       const { id } = req.params;
       const user = req.user;
+      const isPermanent = req.query.permanent === 'true' || req.body?.permanent === true;
 
       const file = await dbHelper.get("SELECT * FROM files WHERE id = ?", [id]);
       if (!file) {
@@ -597,6 +643,17 @@ const fileController = {
         return res.status(403).json({ error: 'You do not have permission to delete this file.' });
       }
 
+      if (isPermanent) {
+        await purgeFileRecordAndStorage(file);
+
+        await dbHelper.run(`
+          INSERT INTO activity_logs (user_id, action, department_id, metadata)
+          VALUES (?, 'File Permanently Deleted', ?, ?)
+        `, [user.id, file.department_id, JSON.stringify({ filename: file.name })]);
+
+        return res.json({ success: true, message: `File "${file.name}" permanently deleted from database and storage.` });
+      }
+
       // Move to Trash (Soft delete)
       await dbHelper.run(
         "UPDATE files SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
@@ -608,10 +665,10 @@ const fileController = {
         VALUES (?, 'File Moved to Trash', ?, ?, ?)
       `, [user.id, id, file.department_id, JSON.stringify({ filename: file.name })]);
 
-      res.json({ message: 'File moved to Trash.' });
+      res.json({ success: true, message: `File "${file.name}" moved to Trash.` });
     } catch (error) {
       console.error('Delete file error:', error);
-      res.status(500).json({ error: 'Failed to delete file.' });
+      res.status(500).json({ error: 'Failed to delete file: ' + error.message });
     }
   },
 
@@ -768,34 +825,24 @@ const fileController = {
         return res.status(404).json({ error: 'File not found.' });
       }
 
-      const canPermDelete = user.role_name === 'admin' || file.owner_id === user.id;
+      const canPermDelete = user.role_name === 'admin' || 
+                            file.owner_id === user.id ||
+                            (user.role_name === 'hod' && user.department_ids?.includes(file.department_id));
       if (!canPermDelete) {
-        return res.status(403).json({ error: 'Only Admin or file owner can permanently delete files.' });
+        return res.status(403).json({ error: 'You do not have permission to permanently delete this file.' });
       }
 
-      // Delete physical file from storage
-      deleteStoredFile(file.storage_path);
-
-      // Delete physical version files
-      const versions = await dbHelper.all("SELECT storage_path FROM file_versions WHERE file_id = ?", [id]);
-      for (const v of versions) {
-        if (v.storage_path !== file.storage_path) {
-          deleteStoredFile(v.storage_path);
-        }
-      }
-
-      // Delete DB records (cascade deletes versions, permissions, favorites, shares)
-      await dbHelper.run("DELETE FROM files WHERE id = ?", [id]);
+      await purgeFileRecordAndStorage(file);
 
       await dbHelper.run(`
         INSERT INTO activity_logs (user_id, action, department_id, metadata)
         VALUES (?, 'File Permanently Deleted', ?, ?)
       `, [user.id, file.department_id, JSON.stringify({ filename: file.name })]);
 
-      res.json({ message: 'File permanently deleted.' });
+      res.json({ success: true, message: `File "${file.name}" permanently deleted.` });
     } catch (error) {
       console.error('Permanent delete error:', error);
-      res.status(500).json({ error: 'Failed to permanently delete file.' });
+      res.status(500).json({ error: 'Failed to permanently delete file: ' + error.message });
     }
   },
 
@@ -816,8 +863,7 @@ const fileController = {
       const filesToDelete = await dbHelper.all(sql, params);
 
       for (const file of filesToDelete) {
-        deleteStoredFile(file.storage_path);
-        await dbHelper.run("DELETE FROM files WHERE id = ?", [file.id]);
+        await purgeFileRecordAndStorage(file);
       }
 
       await dbHelper.run(`
@@ -825,10 +871,10 @@ const fileController = {
         VALUES (?, 'Trash Emptied', ?, ?)
       `, [user.id, user.department_id, JSON.stringify({ count: filesToDelete.length })]);
 
-      res.json({ message: `${filesToDelete.length} files permanently deleted.` });
+      res.json({ success: true, count: filesToDelete.length, message: `${filesToDelete.length} file(s) permanently deleted.` });
     } catch (error) {
       console.error('Empty trash error:', error);
-      res.status(500).json({ error: 'Failed to empty trash.' });
+      res.status(500).json({ error: 'Failed to empty trash: ' + error.message });
     }
   },
 
