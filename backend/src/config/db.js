@@ -190,6 +190,67 @@ const dbHelper = {
     await pool.query(sql);
   },
 
+  async transaction(callback) {
+    await initDB();
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const tx = {
+        async query(sql, params = []) {
+          const safeParams = sanitizeParams(params);
+          const converted = convertSql(sql);
+          const res = await client.query(converted, safeParams);
+          return res.rows || [];
+        },
+        async get(sql, params = []) {
+          const rows = await this.query(sql, params);
+          return rows.length > 0 ? rows[0] : null;
+        },
+        async all(sql, params = []) {
+          return this.query(sql, params);
+        },
+        async run(sql, params = []) {
+          const safeParams = sanitizeParams(params);
+          let converted = convertSql(sql);
+          const isInsert = /^\s*INSERT\s+INTO/i.test(converted);
+          const hasReturning = /RETURNING\b/i.test(converted);
+          if (isInsert && !hasReturning) {
+            converted = converted.trim().replace(/;+$/, '') + ' RETURNING id';
+          }
+          try {
+            const res = await client.query(converted, safeParams);
+            const lastID = res.rows && res.rows[0] && res.rows[0].id !== undefined
+              ? Number(res.rows[0].id)
+              : null;
+            return { lastID, changes: res.rowCount || (res.rows ? res.rows.length : 0) };
+          } catch (err) {
+            if (isInsert && !hasReturning && err.message && err.message.includes('id')) {
+              const fallbackSql = convertSql(sql);
+              const res = await client.query(fallbackSql, safeParams);
+              return { lastID: null, changes: res.rowCount || 0 };
+            }
+            throw err;
+          }
+        },
+        async exec(sql) {
+          await client.query(sql);
+        }
+      };
+      const result = await callback(tx);
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rbErr) {
+        // ignore rollback error
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  },
+
   save() {
     // PostgreSQL transactions are durable; save is a no-op kept for backwards compatibility
   }

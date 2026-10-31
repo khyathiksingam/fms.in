@@ -13,11 +13,17 @@ const userController = {
                u.role_id, r.name as role_name,
                u.department_id, d.name as department_name, d.code as department_code,
                u.created_at, u.updated_at,
-               (SELECT COUNT(*) FROM files f WHERE f.owner_id = u.id AND f.deleted_at IS NULL) as file_count,
-               (SELECT COALESCE(SUM(f.size), 0) FROM files f WHERE f.owner_id = u.id AND f.deleted_at IS NULL) as storage_used
+               COALESCE(fc.file_count, 0) as file_count,
+               COALESCE(fc.storage_used, 0) as storage_used
         FROM users u
         JOIN roles r ON u.role_id = r.id
         LEFT JOIN departments d ON u.department_id = d.id
+        LEFT JOIN (
+          SELECT owner_id, COUNT(*) as file_count, COALESCE(SUM(size), 0) as storage_used
+          FROM files
+          WHERE deleted_at IS NULL
+          GROUP BY owner_id
+        ) fc ON fc.owner_id = u.id
         WHERE 1=1
       `;
       const params = [];

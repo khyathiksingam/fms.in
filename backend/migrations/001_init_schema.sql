@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS users (
     academic_year VARCHAR(100),
     semester VARCHAR(50),
     email_verified INTEGER DEFAULT 0,
+    email_verified_at TIMESTAMP,
     email_verification_token VARCHAR(255),
     email_verification_expires TIMESTAMP,
     pending_email VARCHAR(255),

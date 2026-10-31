@@ -17,7 +17,6 @@ import TrashPage from './pages/TrashPage';
 import SearchResultsPage from './pages/SearchResultsPage';
 import UsersPage from './pages/UsersPage';
 import DepartmentsPage from './pages/DepartmentsPage';
-import StoragePage from './pages/StoragePage';
 import ActivityLogsPage from './pages/ActivityLogsPage';
 import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
@@ -45,7 +44,6 @@ function MainApp({ currentPath, navigate }) {
   const searchQuery = currentPath.startsWith('/search')
     ? new URLSearchParams(currentPath.split('?')[1] || '').get('q') || ''
     : '';
-  const [storageStats, setStorageStats] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Global modals
@@ -66,12 +64,6 @@ function MainApp({ currentPath, navigate }) {
   };
 
   useEffect(() => {
-    if (user && !user.must_change_password) {
-      loadStorageStats();
-    }
-  }, [user, currentPath]);
-
-  useEffect(() => {
     if (loading) return;
     if (user?.must_change_password) {
       if (currentPath !== '/change-password') navigate('/change-password', true);
@@ -89,17 +81,6 @@ function MainApp({ currentPath, navigate }) {
       navigate('/dashboard', true);
     }
   }, [currentPath, loading, navigate, user]);
-
-  const loadStorageStats = async () => {
-    try {
-      const data = await api.get('/analytics/dashboard');
-      if (data && data.stats) {
-        setStorageStats(data.stats);
-      }
-    } catch (e) {
-      // ignore
-    }
-  };
 
   const handleSearch = (q) => {
     if (q && q.trim()) {
@@ -204,8 +185,6 @@ function MainApp({ currentPath, navigate }) {
         return <UsersPage />;
       case '/departments':
         return <DepartmentsPage />;
-      case '/storage':
-        return <StoragePage />;
       case '/activity':
         return <ActivityLogsPage />;
       case '/settings':
@@ -250,7 +229,6 @@ function MainApp({ currentPath, navigate }) {
           onNavigate={handleNavigate}
           onUploadClick={() => setGlobalUploadOpen(true)}
           onNewFolderClick={() => setGlobalNewFolderOpen(true)}
-          storageStats={storageStats}
           mobileOpen={mobileMenuOpen}
           onCloseMobile={() => setMobileMenuOpen(false)}
         />
@@ -266,9 +244,7 @@ function MainApp({ currentPath, navigate }) {
       <FileUploadModal
         isOpen={globalUploadOpen}
         onClose={() => setGlobalUploadOpen(false)}
-        onUploadComplete={() => {
-          loadStorageStats();
-        }}
+        onUploadComplete={() => {}}
       />
 
       <NewFolderModal

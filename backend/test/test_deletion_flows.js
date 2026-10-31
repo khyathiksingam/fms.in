@@ -40,10 +40,26 @@ async function runDeletionFlowTests() {
   const facultyUser = { id: 3, role_name: 'faculty', full_name: 'Prof. Faculty', department_id: 1 };
   const adminUser = { id: 1, role_name: 'admin', full_name: 'Administrator', department_id: 1 };
 
-  // 1B. Verify initial department state
   const targetDeptId = 1; // CSE
+  const reqForbidden = {
+    params: { id: targetDeptId },
+    user: facultyUser
+  };
+  const resForbidden = createMockResponse();
+  await departmentController.deleteDepartment(reqForbidden, resForbidden);
+  assert.strictEqual(resForbidden.statusCode, 403, 'Non-admin user must be rejected with 403 Forbidden');
+  console.log('  ✓ Authorization check enforced: non-admin received 403 Forbidden.');
+
+  // 1B. Verify initial department state with assigned faculty, files, and HOD
   const deptBefore = await dbHelper.get('SELECT * FROM departments WHERE id = ?', [targetDeptId]);
   assert(deptBefore, 'Department CSE should exist before deletion');
+
+  // Ensure an HOD assignment is present
+  const hodUser = await dbHelper.get("SELECT id FROM users WHERE role_id = (SELECT id FROM roles WHERE name = 'hod' LIMIT 1) LIMIT 1");
+  if (hodUser) {
+    await dbHelper.run("INSERT INTO hod_departments (hod_id, department_id) VALUES (?, ?) ON CONFLICT DO NOTHING", [hodUser.id, targetDeptId]);
+    await dbHelper.run("UPDATE departments SET hod_id = ? WHERE id = ?", [hodUser.id, targetDeptId]);
+  }
 
   // Verify users, files, folders linked to Department 1
   const usersBefore = await dbHelper.all('SELECT id, username, department_id, password_hash FROM users WHERE department_id = ?', [targetDeptId]);
@@ -55,7 +71,7 @@ async function runDeletionFlowTests() {
   assert(usersBefore.length > 0, 'Target department should have at least 1 linked user');
   assert(filesBefore.length > 0, 'Target department should have linked files');
 
-  // 1C. Perform department deletion via admin
+  // 1C. Perform department deletion of department with assigned faculty/HOD/files via admin
   const reqDeptDelete = {
     params: { id: targetDeptId },
     user: adminUser
@@ -91,7 +107,12 @@ async function runDeletionFlowTests() {
   }
   console.log(`  ✓ All ${filesBefore.length} user file(s) safely unlinked without data loss.`);
 
-  // 1G. Verify unrelated departments remain untouched
+  // 1G. Verify HOD associations are removed
+  const hodAssocAfter = await dbHelper.all('SELECT * FROM hod_departments WHERE department_id = ?', [targetDeptId]);
+  assert.strictEqual(hodAssocAfter.length, 0, 'HOD department associations must be removed');
+  console.log('  ✓ HOD mapping safely cleaned up.');
+
+  // 1H. Verify unrelated departments remain untouched
   const unrelatedDeptAfter = await dbHelper.get('SELECT * FROM departments WHERE id = ?', [unrelatedDeptBefore.id]);
   assert(unrelatedDeptAfter, 'Unrelated departments must not be affected');
   if (unrelatedFilesBefore.length > 0) {
@@ -100,6 +121,78 @@ async function runDeletionFlowTests() {
     assert.strictEqual(unrelatedFilesAfter.length, unrelatedFilesBefore.length, 'Unrelated files must not be deleted');
   }
   console.log('  ✓ Unrelated departments and files remained 100% intact.');
+
+  // ==========================================
+  // FLOW 1B: DELETING AN EMPTY DEPARTMENT
+  // ==========================================
+  console.log('\n[1B] Testing Empty Department Deletion Flow...');
+  const emptyInsert = await dbHelper.run(
+    "INSERT INTO departments (name, code, display_group, active, sort_order) VALUES (?, ?, ?, ?, ?)",
+    ['Robotics & Automation', 'ROBO', 'ENGINEERING', 1, 999]
+  );
+  const emptyDeptId = emptyInsert.lastID;
+  assert(emptyDeptId, 'Empty department should be created with valid ID');
+
+  const emptyDeptBefore = await dbHelper.get('SELECT * FROM departments WHERE id = ?', [emptyDeptId]);
+  assert(emptyDeptBefore, 'Empty department must exist before deletion');
+
+  // Verify 0 users and 0 files linked
+  const emptyDeptUsers = await dbHelper.all('SELECT id FROM users WHERE department_id = ?', [emptyDeptId]);
+  const emptyDeptFiles = await dbHelper.all('SELECT id FROM files WHERE department_id = ?', [emptyDeptId]);
+  assert.strictEqual(emptyDeptUsers.length, 0, 'Empty department should have 0 linked users');
+  assert.strictEqual(emptyDeptFiles.length, 0, 'Empty department should have 0 linked files');
+
+  const reqEmptyDelete = {
+    params: { id: emptyDeptId },
+    user: adminUser
+  };
+  const resEmptyDelete = createMockResponse();
+  await departmentController.deleteDepartment(reqEmptyDelete, resEmptyDelete);
+
+  assert.strictEqual(resEmptyDelete.statusCode, 200, `Expected 200 OK for empty department delete, got ${resEmptyDelete.statusCode}`);
+  assert(resEmptyDelete.body && resEmptyDelete.body.success, 'Empty department delete response must indicate success: true');
+  const emptyDeptAfter = await dbHelper.get('SELECT * FROM departments WHERE id = ?', [emptyDeptId]);
+  assert.strictEqual(emptyDeptAfter, null, 'Empty department record must be removed from database');
+  console.log('  ✓ Empty department deleted successfully with 200 OK and record removed from database.');
+
+  // ==========================================
+  // FLOW 1C: USERS API FULL DEPARTMENT NAMES
+  // ==========================================
+  console.log('\n[1C] Testing Users API Returns Full Department Name and Code...');
+  const userController = require('../src/controllers/userController');
+  const reqUsersList = {
+    query: {},
+    user: adminUser
+  };
+  const resUsersList = createMockResponse();
+  await userController.getAllUsers(reqUsersList, resUsersList);
+  assert.strictEqual(resUsersList.statusCode, 200, 'getAllUsers should return 200 OK');
+  assert(Array.isArray(resUsersList.body?.users), 'Users API must return users array');
+
+  // Assign or insert a test faculty user with an existing department (e.g. Mechanical Engineering / ME)
+  const existingDept = await dbHelper.get("SELECT * FROM departments WHERE code = 'ME' OR id = 9 LIMIT 1") || await dbHelper.get("SELECT * FROM departments LIMIT 1");
+  assert(existingDept, 'An existing department must be present for testing');
+  
+  const facultyRole = await dbHelper.get("SELECT id FROM roles WHERE name = 'faculty'");
+  const facultyRoleId = facultyRole ? facultyRole.id : 3;
+  let facultyUserRow = await dbHelper.get("SELECT id FROM users WHERE role_id = ?", [facultyRoleId]);
+  if (!facultyUserRow) {
+    const userRes = await dbHelper.run(`
+      INSERT INTO users (full_name, username, password_hash, email, role_id, department_id, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, ['Prof. Alan Turing', 'alan_turing', 'hash123', 'alan@vnrvjiet.in', facultyRoleId, existingDept.id, 'active']);
+    facultyUserRow = { id: userRes.lastID };
+  } else {
+    await dbHelper.run("UPDATE users SET department_id = ? WHERE id = ?", [existingDept.id, facultyUserRow.id]);
+  }
+
+  const resUsersList2 = createMockResponse();
+  await userController.getAllUsers(reqUsersList, resUsersList2);
+  const facultyWithDept = resUsersList2.body.users.find(u => u.id === facultyUserRow.id);
+  assert(facultyWithDept, 'Faculty user with assigned department must exist in users API result');
+  assert.strictEqual(facultyWithDept.department_name, existingDept.name, 'department_name must match database department name');
+  assert.strictEqual(facultyWithDept.department_code, existingDept.code, 'department_code must match database department code');
+  console.log(`  ✓ Users API verified: returns both department_name ("${facultyWithDept.department_name}") and department_code ("${facultyWithDept.department_code}").`);
 
 
   // ==========================================

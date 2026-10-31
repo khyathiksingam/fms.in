@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { formatBytes, formatDate } from '../utils/formatters';
+import { formatDate } from '../utils/formatters';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
 export default function UsersPage() {
@@ -348,7 +348,9 @@ export default function UsersPage() {
           >
             <option value="">All Departments</option>
             {departments.map(d => (
-              <option key={d.id} value={d.id}>{d.code} - {d.name}</option>
+              <option key={d.id} value={d.id}>
+                {d.name}{d.code ? ` (${d.code})` : ''}
+              </option>
             ))}
           </select>
         )}
@@ -488,7 +490,7 @@ export default function UsersPage() {
                 <th className="py-3.5 pl-4 pr-2">User Details</th>
                 <th className="px-3 py-3.5">Role</th>
                 <th className="px-3 py-3.5">Department</th>
-                <th className="px-3 py-3.5">Files & Storage</th>
+                <th className="px-3 py-3.5">Files</th>
                 <th className="px-3 py-3.5">Status</th>
                 <th className="px-3 py-3.5">Joined</th>
                 <th className="py-3.5 pl-3 pr-4 text-right">Actions</th>
@@ -526,14 +528,24 @@ export default function UsersPage() {
                   </td>
 
                   <td className="px-3 py-3">
-                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                      {u.department_code || u.department_name || '—'}
-                    </span>
+                    {u.department_name ? (
+                      <div>
+                        <div className="font-semibold text-slate-800 dark:text-slate-200">
+                          {u.department_name}
+                        </div>
+                        {u.department_code && (
+                          <div className="text-[10px] text-slate-400">
+                            ({u.department_code})
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-slate-400 font-medium">—</span>
+                    )}
                   </td>
 
                   <td className="px-3 py-3 text-slate-600 dark:text-slate-400">
                     <span className="font-medium">{u.file_count || 0} files</span>
-                    <span className="text-[10px] text-slate-400 block">{formatBytes(u.storage_used || 0)}</span>
                   </td>
 
                   <td className="px-3 py-3">
@@ -656,7 +668,9 @@ export default function UsersPage() {
                 <div className="rounded-xl border border-slate-150 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-850">
                   <span className="text-[11px] font-semibold text-slate-400 block">Department / Branch</span>
                   <span className="font-medium text-slate-800 dark:text-slate-200 mt-0.5 block">
-                    {studentToView.department_code || studentToView.department_name || 'VNRVJIET'}
+                    {studentToView.department_name
+                      ? `${studentToView.department_name}${studentToView.department_code ? ` (${studentToView.department_code})` : ''}`
+                      : (studentToView.department_code || 'VNRVJIET')}
                   </span>
                 </div>
                 <div className="rounded-xl border border-slate-150 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-850">
@@ -865,7 +879,9 @@ export default function UsersPage() {
                   >
                     <option value="">No Department (Admin)</option>
                     {departments.map(d => (
-                      <option key={d.id} value={d.id}>{d.code} - {d.name}</option>
+                      <option key={d.id} value={d.id}>
+                        {d.name}{d.code ? ` (${d.code})` : ''}
+                      </option>
                     ))}
                   </select>
                 </div>

@@ -364,52 +364,62 @@ const departmentController = {
 
   async deleteDepartment(req, res) {
     try {
-      const { id } = req.params;
-      const dept = await dbHelper.get("SELECT * FROM departments WHERE id = ?", [id]);
+      if (!req.user || req.user.role_name !== 'admin') {
+        return res.status(403).json({ error: 'Administrator authentication is required to delete departments.' });
+      }
+
+      const deptId = Number(req.params.id);
+      if (!Number.isInteger(deptId) || deptId < 1) {
+        return res.status(400).json({ error: 'A valid department ID is required.' });
+      }
+
+      const dept = await dbHelper.get("SELECT * FROM departments WHERE id = ?", [deptId]);
       if (!dept) {
         return res.status(404).json({ error: 'Department not found.' });
       }
 
-      // Safely unlink related records to preserve all user accounts and user-uploaded files:
-      // 1. Unlink users assigned to this department (preserves accounts, passwords, and profiles)
-      await dbHelper.run("UPDATE users SET department_id = NULL WHERE department_id = ?", [id]);
+      // Safely unlink related records and delete department within a single atomic database transaction
+      await dbHelper.transaction(async (tx) => {
+        // 1. Unlink users assigned to this department (preserves accounts, passwords, and profiles)
+        await tx.run("UPDATE users SET department_id = NULL WHERE department_id = ?", [deptId]);
 
-      // 2. Remove HOD and user-department associations
-      await dbHelper.run("DELETE FROM hod_departments WHERE department_id = ?", [id]);
-      await dbHelper.run("DELETE FROM user_departments WHERE department_id = ?", [id]);
+        // 2. Remove HOD and user-department associations
+        await tx.run("DELETE FROM hod_departments WHERE department_id = ?", [deptId]);
+        await tx.run("DELETE FROM user_departments WHERE department_id = ?", [deptId]);
 
-      // 3. Unlink user-uploaded files (preserves all files and contents)
-      await dbHelper.run("UPDATE files SET department_id = NULL WHERE department_id = ?", [id]);
+        // 3. Unlink user-uploaded files (preserves all files and contents)
+        await tx.run("UPDATE files SET department_id = NULL WHERE department_id = ?", [deptId]);
 
-      // 4. Unlink user folders (preserves all folder structures)
-      await dbHelper.run("UPDATE folders SET department_id = NULL WHERE department_id = ?", [id]);
+        // 4. Unlink user folders (preserves all folder structures)
+        await tx.run("UPDATE folders SET department_id = NULL WHERE department_id = ?", [deptId]);
 
-      // 5. Remove departmental shares
-      await dbHelper.run("DELETE FROM shared_files WHERE shared_with_department = ?", [id]);
+        // 5. Remove departmental shares
+        await tx.run("DELETE FROM shared_files WHERE shared_with_department = ?", [deptId]);
 
-      // 6. Delete syllabus catalog entries linked specifically to this department
-      await dbHelper.run("DELETE FROM syllabus_catalog WHERE department_id = ?", [id]);
+        // 6. Delete syllabus catalog entries linked specifically to this department
+        await tx.run("DELETE FROM syllabus_catalog WHERE department_id = ?", [deptId]);
 
-      // 7. Unlink audit trail and student activity entries
-      await dbHelper.run("UPDATE student_resource_activity SET department_id = NULL WHERE department_id = ?", [id]);
-      await dbHelper.run("UPDATE activity_logs SET department_id = NULL WHERE department_id = ?", [id]);
+        // 7. Unlink audit trail and student activity entries
+        await tx.run("UPDATE student_resource_activity SET department_id = NULL WHERE department_id = ?", [deptId]);
+        await tx.run("UPDATE activity_logs SET department_id = NULL WHERE department_id = ?", [deptId]);
 
-      // 8. Delete the department record itself
-      await dbHelper.run("DELETE FROM departments WHERE id = ?", [id]);
+        // 8. Delete the department record itself
+        await tx.run("DELETE FROM departments WHERE id = ?", [deptId]);
 
-      // 9. Record deletion in activity log
-      await dbHelper.run(
-        "INSERT INTO activity_logs (user_id, action, department_id, metadata) VALUES (?, ?, ?, ?)",
-        [req.user.id, 'Department Deleted', null, JSON.stringify({ name: dept.name, code: dept.code })]
-      );
+        // 9. Record deletion in activity log
+        await tx.run(
+          "INSERT INTO activity_logs (user_id, action, department_id, metadata) VALUES (?, ?, ?, ?)",
+          [req.user.id, 'Department Deleted', null, JSON.stringify({ name: dept.name, code: dept.code })]
+        );
+      });
 
-      res.json({
+      return res.json({
         success: true,
         message: `Department "${dept.name}" (${dept.code}) deleted successfully and related records safely unlinked.`
       });
     } catch (error) {
       console.error('Delete department error:', error);
-      res.status(500).json({ error: 'Failed to delete department: ' + error.message });
+      return res.status(500).json({ error: 'Failed to delete department: ' + error.message });
     }
   }
 };

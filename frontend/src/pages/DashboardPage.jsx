@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Files, Folder, Users, Building2, HardDrive, Star, Clock, 
+  Files, Folder, Users, Building2, Star, Clock, 
   Upload, ArrowRight, Shield, Activity, FileText, CheckCircle2, TrendingUp, ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -68,7 +68,7 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
 
           <p className="mt-1 max-w-xl text-xs sm:text-sm leading-relaxed font-normal text-white/80">
             {isAdmin 
-              ? 'Complete administrative authority over college documents, departments, faculty accounts, and storage analytics.'
+              ? 'Complete administrative authority over college documents, departments, and faculty accounts.'
               : isHOD 
               ? `Manage academic files, folders, and faculty repository for the ${user?.department_name || 'department'}.`
               : 'Upload, organize, search inside scanned papers with OCR, and manage academic documents.'}
@@ -99,7 +99,7 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
       </div>
 
       {/* KPI Statistic Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {isAdmin ? (
           <>
             <div className="rounded-2xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-800 p-5 shadow-xs transition hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800">
@@ -140,19 +140,6 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
               </div>
               <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">Total documents stored</p>
             </div>
-
-            <div className="rounded-2xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-800 p-5 shadow-xs transition hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800">
-              <div className="flex items-center justify-between text-slate-400">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Storage Used</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
-                  <HardDrive className="h-4 w-4" />
-                </div>
-              </div>
-              <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">
-                {formatBytes(stats.totalStorageBytes || 0)}
-              </div>
-              <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">of 100 GB allocated</p>
-            </div>
           </>
         ) : isHOD ? (
           <>
@@ -184,19 +171,6 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
 
             <div className="rounded-2xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-800 p-5 shadow-xs transition hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800">
               <div className="flex items-center justify-between text-slate-400">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Dept Storage</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
-                  <HardDrive className="h-4 w-4" />
-                </div>
-              </div>
-              <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">
-                {formatBytes(stats.departmentStorageBytes || 0)}
-              </div>
-              <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">Quota usage</p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-800 p-5 shadow-xs transition hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800">
-              <div className="flex items-center justify-between text-slate-400">
                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Shared Files</span>
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400">
                   <Star className="h-4 w-4" />
@@ -221,19 +195,6 @@ export default function DashboardPage({ onNavigate, onUploadClick, onPreviewFile
                 {stats.myFilesCount || 0}
               </div>
               <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">Uploaded documents</p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-800 p-5 shadow-xs transition hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800">
-              <div className="flex items-center justify-between text-slate-400">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">My Storage</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
-                  <HardDrive className="h-4 w-4" />
-                </div>
-              </div>
-              <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">
-                {formatBytes(stats.storageUsedBytes || 0)}
-              </div>
-              <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">Total used</p>
             </div>
 
             <div className="rounded-2xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-800 p-5 shadow-xs transition hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800">

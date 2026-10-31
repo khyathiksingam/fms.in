@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Plus, Users, Files, HardDrive, Edit3, Trash2, Shield, Check, X, CheckCircle2 } from 'lucide-react';
+import { Building2, Plus, Users, Files, Edit3, Trash2, Shield, Check, X, CheckCircle2 } from 'lucide-react';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { formatBytes } from '../utils/formatters';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
 export default function DepartmentsPage({ onSelectDepartment }) {
@@ -22,8 +21,18 @@ export default function DepartmentsPage({ onSelectDepartment }) {
   const [code, setCode] = useState('');
   const [selectedHodId, setSelectedHodId] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [formError, setFormError] = useState('');
   const [message, setMessage] = useState('');
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     loadDepartments();
@@ -126,16 +135,22 @@ export default function DepartmentsPage({ onSelectDepartment }) {
 
   const handleDeleteConfirm = async () => {
     if (!deptToDelete) return;
+    setDeleteLoading(true);
     try {
       const res = await api.delete(`/departments/${deptToDelete.id}`);
-      setDepartments(prev => prev.filter(d => d.id !== deptToDelete.id));
-      setMessage(res.message || `Department "${deptToDelete.name}" (${deptToDelete.code}) was deleted successfully.`);
+      const successMsg = res?.message || `Department "${deptToDelete.name}" (${deptToDelete.code}) was deleted successfully.`;
+      setToast({ type: 'success', message: successMsg });
+      setMessage(successMsg);
       setFormError('');
       setDeptToDelete(null);
-      loadDepartments();
+      await loadDepartments();
     } catch (err) {
-      setFormError(err.message || 'Failed to delete department.');
+      const errMsg = err?.message || 'Failed to delete department.';
+      setToast({ type: 'error', message: errMsg });
+      setFormError(errMsg);
       setDeptToDelete(null);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -156,7 +171,7 @@ export default function DepartmentsPage({ onSelectDepartment }) {
             College Departments & HOD Assignments
           </h2>
           <p className="text-xs text-slate-400">
-            Organize faculty hierarchy, assign department heads, and monitor departmental storage quotas.
+            Organize faculty hierarchy and assign department heads.
           </p>
         </div>
 
@@ -211,16 +226,16 @@ export default function DepartmentsPage({ onSelectDepartment }) {
           {departments.map((dept) => (
             <div
               key={dept.id}
-                className="flex min-w-0 flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-400 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+              className="flex min-w-0 flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-400 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
             >
               <div>
-                  <div className="flex min-w-0 items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-start gap-2.5">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-sm font-bold text-brand-600 dark:bg-brand-950 dark:text-brand-400">
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-2.5">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-sm font-bold text-brand-600 dark:bg-brand-950 dark:text-brand-400">
                       {dept.code}
                     </div>
-                      <div className="min-w-0">
-                        <h4 className="break-words text-sm font-bold leading-5 text-slate-900 dark:text-slate-100">
+                    <div className="min-w-0">
+                      <h4 className="break-words text-sm font-bold leading-5 text-slate-900 dark:text-slate-100">
                         {dept.name}
                       </h4>
                       <p className="text-[11px] text-slate-400">Code: {dept.code}</p>
@@ -230,16 +245,22 @@ export default function DepartmentsPage({ onSelectDepartment }) {
                   {isAdmin && (
                     <div className="flex items-center gap-1">
                       <button
+                        type="button"
                         onClick={() => openEditModal(dept)}
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 cursor-pointer"
                         title="Edit Department"
                       >
                         <Edit3 className="h-3.5 w-3.5" />
                       </button>
                       <button
-                        onClick={() => setDeptToDelete(dept)}
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/50 dark:hover:text-rose-400"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeptToDelete(dept);
+                        }}
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/50 dark:hover:text-rose-400 cursor-pointer"
                         title="Delete Department"
+                        aria-label={`Delete ${dept.name}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -271,7 +292,7 @@ export default function DepartmentsPage({ onSelectDepartment }) {
                 </div>
 
                 {/* Metrics */}
-                <div className="mt-4 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-center text-xs dark:border-slate-800">
+                <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 text-center text-xs dark:border-slate-800">
                   <div>
                     <span className="text-[10px] text-slate-400 block">Faculty</span>
                     <span className="font-bold text-slate-800 dark:text-slate-200">
@@ -282,12 +303,6 @@ export default function DepartmentsPage({ onSelectDepartment }) {
                     <span className="text-[10px] text-slate-400 block">Files</span>
                     <span className="font-bold text-slate-800 dark:text-slate-200">
                       {dept.file_count || 0}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">Storage</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      {formatBytes(dept.storage_used || 0)}
                     </span>
                   </div>
                 </div>
@@ -435,12 +450,39 @@ export default function DepartmentsPage({ onSelectDepartment }) {
       <ConfirmDialog
         isOpen={Boolean(deptToDelete)}
         title="Delete Department"
-        message={`Are you sure you want to delete "${deptToDelete?.name}" (${deptToDelete?.code})? Faculty will be unlinked from this department.`}
-        confirmText="Delete Department"
+        message={`Are you sure you want to delete "${deptToDelete?.name}" (${deptToDelete?.code})? All assigned faculty members, folders, and files will be safely unlinked and preserved. This action cannot be undone.`}
+        confirmText={deleteLoading ? "Deleting..." : "Delete Department"}
         isDanger={true}
-        onClose={() => setDeptToDelete(null)}
+        loading={deleteLoading}
+        onClose={() => { if (!deleteLoading) setDeptToDelete(null); }}
         onConfirm={handleDeleteConfirm}
       />
+
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div
+          role="alert"
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl p-4 shadow-xl border text-xs font-semibold transition-all duration-300 animate-in fade-in slide-in-from-bottom-3 ${toast.type === 'error'
+              ? 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950 dark:border-rose-900 dark:text-rose-200'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-200'
+            }`}
+        >
+          {toast.type === 'error' ? (
+            <X className="h-4 w-4 text-rose-600 shrink-0" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+          )}
+          <span>{toast.message}</span>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            className="ml-2 rounded-lg p-1 hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer"
+            aria-label="Close notification"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
